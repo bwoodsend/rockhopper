@@ -24,7 +24,7 @@ class RaggedArray(object):
     starts: np.ndarray
     ends: np.ndarray
 
-    def __init__(self, flat, starts, ends=None):
+    def __init__(self, flat, starts, ends=None, dtype=None):
         """The default way to construct a :class:`RaggedArray` is explicitly
         from a :attr:`flat` contents array and either row :attr:`starts` and
         :attr:`ends` arrays or, more commonly, a *bounds* array.
@@ -40,7 +40,7 @@ class RaggedArray(object):
                 The index of **flat** where each row ends.
 
         """
-        self.flat = np.ascontiguousarray(flat)
+        self.flat = np.asarray(flat, dtype=dtype, order="C")
         if ends is None:
             bounds = np.asarray(starts, dtype=np.intc, order="C")
             self.starts = bounds[:-1]
@@ -50,12 +50,49 @@ class RaggedArray(object):
             self.ends = np.asarray(ends, dtype=np.intc, order="C")
 
 
+    @property
+    def dtype(self):
+        """The data type of the contents of this array.
+
+        Returns:
+            numpy.dtype: :py:`self.flat.dtype`.
+
+        """
+        return self.flat.dtype
+
+    def astype(self, dtype):
+        """Cast the contents to a given **dtype**. Analogous to
+        :meth:`numpy.ndarray.astype`.
+
+        Args:
+            dtype (numpy.dtype):
+                Desired data type for the :attr:`flat` attribute.
+
+        Returns:
+            RaggedArray: A modified copy with :py:`copy.flat.dtype == dtype`.
+
+        Only the :attr:`flat` property is cast - :attr:`starts` and :attr:`ends`
+        remain unchanged.
+
+        The :attr:`flat` attribute is a copy if :meth:`numpy.ndarray.astype`
+        chooses to copy it. The :attr:`starts` and :attr:`ends` are never
+        copied.
+
+            >>> ragged = RaggedArray.from_nested([[1, 2], [3]], dtype=np.int32)
+            >>> ragged.astype(np.int32).flat is ragged.flat
+            False
+            >>> ragged.astype(np.int16).starts is ragged.starts
+            True
+
+        """
+        return type(self)(self.flat.astype(dtype), self.starts, self.ends)
+
     @classmethod
-    def from_lengths(cls, flat, lengths):
+    def from_lengths(cls, flat, lengths, dtype=None):
         bounds = np.empty(len(lengths) + 1, dtype=np.intc)
         bounds[0] = 0
         np.cumsum(lengths, out=bounds[1:])
-        return cls(flat, bounds)
+        return cls(flat, bounds, dtype=dtype)
 
     def __getitem__(self, item):
         if np.isscalar(item):
