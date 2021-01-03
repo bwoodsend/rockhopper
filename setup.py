@@ -25,7 +25,7 @@ setup(
         'Programming Language :: Python :: 3.9',
     ],
     description="Ragged (rows with different lengths) 2D NumPy arrays.",
-    install_requires=[],
+    install_requires=['numpy'],
     extras_require={
         "test": [
             'pytest>=3', 'pytest-order', 'coverage', 'pytest-cov',
