@@ -48,3 +48,14 @@ class RaggedArray(object):
         else:
             self.starts = np.asarray(starts, dtype=np.intc, order="C")
             self.ends = np.asarray(ends, dtype=np.intc, order="C")
+
+    def __getitem__(self, item):
+        if np.isscalar(item):
+            return self.flat[self.starts[item]:self.ends[item]]
+        return type(self)(self.flat, self.starts[item], self.ends[item])
+
+    def __len__(self):
+        return len(self.starts)
+
+    def __iter__(self):
+        return (self[i] for i in range(len(self)))
