@@ -49,6 +49,14 @@ class RaggedArray(object):
             self.starts = np.asarray(starts, dtype=np.intc, order="C")
             self.ends = np.asarray(ends, dtype=np.intc, order="C")
 
+
+    @classmethod
+    def from_lengths(cls, flat, lengths):
+        bounds = np.empty(len(lengths) + 1, dtype=np.intc)
+        bounds[0] = 0
+        np.cumsum(lengths, out=bounds[1:])
+        return cls(flat, bounds)
+
     def __getitem__(self, item):
         if np.isscalar(item):
             return self.flat[self.starts[item]:self.ends[item]]

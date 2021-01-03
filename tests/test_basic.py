@@ -50,3 +50,11 @@ def _test_get_item(self):
         idx = np.random.randint(0, len(self), i)
         indexed = self[idx]
         assert all(map(np.array_equal, (self[i] for i in idx), indexed))
+
+
+def test_from_lengths():
+    flat = np.arange(10)
+    self = RaggedArray.from_lengths(flat, [2, 3, 0, 4])
+    assert self.flat is flat
+    assert np.array_equal(self.starts, [0, 2, 5, 5])
+    assert np.array_equal(self.ends, [2, 5, 5, 9])
