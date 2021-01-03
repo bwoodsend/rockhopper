@@ -94,6 +94,12 @@ class RaggedArray(object):
         np.cumsum(lengths, out=bounds[1:])
         return cls(flat, bounds, dtype=dtype)
 
+    @classmethod
+    def from_nested(cls, nested, dtype=None):
+        flat = np.concatenate(nested)
+        lengths = [len(i) for i in nested]
+        return cls.from_lengths(flat, lengths, dtype=dtype)
+
     def __getitem__(self, item):
         if np.isscalar(item):
             return self.flat[self.starts[item]:self.ends[item]]

@@ -3,6 +3,7 @@
 """
 
 import numpy as np
+import pytest
 
 from rockhopper import RaggedArray
 
@@ -61,3 +62,15 @@ def test_from_lengths():
     assert self.flat is flat
     assert np.array_equal(self.starts, [0, 2, 5, 5])
     assert np.array_equal(self.ends, [2, 5, 5, 9])
+
+
+NESTED = [[0, 1, 2], [3, 4], [], [5], [6, 7, 8, 9]]
+
+
+@pytest.mark.parametrize("dtype", [None, int, np.float32])
+def test_from_nested(dtype):
+    self = RaggedArray.from_nested(NESTED, dtype=dtype)
+    assert len(self) == len(NESTED)
+    assert np.array_equal([len(i) for i in NESTED], self.ends - self.starts)
+    assert all(map(np.array_equal, self, NESTED))
+    assert self.dtype == dtype
