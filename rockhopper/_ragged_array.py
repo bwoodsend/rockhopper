@@ -3,6 +3,13 @@
 """
 
 import numpy as np
+from cslug import CSlug, ptr, anchor
+
+slug = CSlug(anchor(
+    "_slugs/ragged_array",
+    "src/ragged_array.c",
+    "src/ragged_array.h",
+))  # yapf: disable
 
 
 class RaggedArray(object):
@@ -49,6 +56,13 @@ class RaggedArray(object):
             self.starts = np.asarray(starts, dtype=np.intc, order="C")
             self.ends = np.asarray(ends, dtype=np.intc, order="C")
 
+        self._c_struct = slug.dll.RaggedArray(
+            ptr(self.flat),
+            self.flat.dtype.itemsize,
+            len(self),
+            ptr(self.starts),
+            ptr(self.ends),
+        )
 
     @property
     def dtype(self):
@@ -110,3 +124,11 @@ class RaggedArray(object):
 
     def __iter__(self):
         return (self[i] for i in range(len(self)))
+
+    def repacked(self):
+        length = (self.ends - self.starts).sum()
+        flat = np.empty((length,) + self.flat.shape[1:], self.flat.dtype)
+        bounds = np.empty(len(self.starts) + 1, np.intc)
+        new = type(self)(flat, bounds[:-1], bounds[1:])
+        slug.dll.repack(self._c_struct._ptr, new._c_struct._ptr)
+        return new

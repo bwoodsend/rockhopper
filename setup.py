@@ -43,7 +43,7 @@ setup(
     url='https://github.com/bwoodsend/rockhopper',
     version=runpy.run_path(HERE / "rockhopper/_version.py")["__version__"],
     zip_safe=False,
-    package_data={"rockhopper": ["*" + CSLUG_SUFFIX, "*.json"]},
+    package_data={"rockhopper": ["*/*" + CSLUG_SUFFIX, "*/*.json"]},
     cmdclass={
         "build": build_slugs("rockhopper._ragged_array:slug"),
         "bdist_wheel": bdist_wheel,

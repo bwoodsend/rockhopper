@@ -74,3 +74,18 @@ def test_from_nested(dtype):
     assert np.array_equal([len(i) for i in NESTED], self.ends - self.starts)
     assert all(map(np.array_equal, self, NESTED))
     assert self.dtype == dtype
+
+
+def test_repacked():
+    flat = np.random.random(10)
+    starts, ends = zip([2, 4], [5, 5], [3, 8], [8, 10])
+
+    self = RaggedArray(flat, starts, ends)
+    packed = self.repacked()
+
+    assert len(packed) == len(self)
+    assert np.array_equal(packed.ends - packed.starts, self.ends - self.starts)
+    assert all(map(np.array_equal, self, packed))
+    assert np.array_equal(packed.starts[1:], packed.ends[:-1])
+    assert packed.starts[0] == 0
+    assert packed.ends[-1] == len(packed.flat)
