@@ -18,6 +18,8 @@ exclude_lines =
     # Don't complain if non-runnable code isn't run:
     if 0:
     if __name__ == .__main__.:
+partial_branches =
+    next\(
 ignore_errors = True
 
 [coverage_conditional_plugin]

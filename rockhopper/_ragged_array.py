@@ -2,9 +2,12 @@
 """
 """
 
+import sys
+
 import numpy as np
 from cslug import CSlug, ptr, anchor, Header
 
+BIG_ENDIAN = sys.byteorder == "big"
 endians_header = Header(*anchor("src/endians.h", "src/endians.c"),
                         includes=["<stdbool.h>", '"_endian_typedefs.h"'])
 slug = CSlug(anchor(
@@ -136,9 +139,62 @@ class RaggedArray(object):
         slug.dll.repack(self._c_struct._ptr, new._c_struct._ptr)
         return new
 
-def _2_power(x):
-    from numbers import Integral
-    if isinstance(x, Integral):
-        return x
-    itemsize = np.dtype(x).itemsize
-    return next(i for i in range(8) if (1 << i) == itemsize)  # pragma: no branch
+    def dumps(self, lengths_dtype=np.intc):
+        """Serialise into a :class:`memoryview`.
+
+        Args:
+            lengths_dtype (numpy.dtype):
+                Integer type.
+
+        Returns:
+            memoryview:
+                Binary blob.
+
+        The binary format is an undelimited sequence of ``(len(row), row)``
+        pairs. A pure Python approximation would be::
+
+            b"".join((len(row).tobytes() + row.tobytes() for row in ragged_array))
+
+        The integer types of the row lengths can be controlled by the
+        **lengths_dtype** parameter. To change the type or byteorder of the data
+        itself, cast to that type with :meth:`astype` then call this function.
+
+        """
+        lengths_dtype = np.dtype(lengths_dtype)
+
+        # --- Work out how many bytes the output will need. ---
+
+        # The total length of the flat data. Note, `self.flat.size` would not be
+        # a safe shortcut unless `self.repacked()` has been called 1st.
+        length = (self.ends - self.starts).sum() * self.dtype.itemsize
+        # And the lengths of the lengths...
+        length += len(self) * lengths_dtype.itemsize
+
+        # Allocate `length` bytes to write to. `numpy.empty()` seems to be one
+        # of the only ways to create a lump of memory in Python without wasting
+        # time initialising it.
+        out = np.empty(length, dtype=np.byte)
+
+        slug.dll.dump(self._c_struct._ptr, ptr(out), _2_power(lengths_dtype),
+                      _big_endian(lengths_dtype))
+        return out.data
+
+
+def _2_power(dtype):
+    """Convert an integer dtype to an enumerate used throughout the C code."""
+    # Functionally this is equivalent to ``int(math.log2(dtype.itemsize))``.
+    itemsize = np.dtype(dtype).itemsize
+    return next(i for i in range(8) if (1 << i) == itemsize)
+
+
+def _big_endian(dtype):
+    """Is **dtype** bit endian?"""
+    byteorder = np.dtype(dtype).byteorder
+    if byteorder == "<":
+        return False
+    if byteorder == ">":
+        return True
+    # `byteorder` can also be '=' for native (`sys.endian == "big"`) or "|" for
+    # not applicable (for string types - which we shouldn't need anyway - or
+    # single byte types).
+    return BIG_ENDIAN
