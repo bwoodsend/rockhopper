@@ -68,6 +68,32 @@ IntWrite choose_int_write(int power, bool big_endian) {
 }
 
 
+/* --- Read integers with arbitrary sizes and byte-orders --- */
+
+uint64_t read_8 (void * x) { return *((uint8_t *) x); }
+uint64_t read_16(void * x) { return *((uint16_t *) x); }
+uint64_t read_32(void * x) { return *((uint32_t *) x); }
+uint64_t read_64(void * x) { return *((uint64_t *) x); }
+
+uint64_t read_swap_8 (void * x) { return swap_endian_8 (read_8 (x)); }
+uint64_t read_swap_16(void * x) { return swap_endian_16(read_16(x)); }
+uint64_t read_swap_32(void * x) { return swap_endian_32(read_32(x)); }
+uint64_t read_swap_64(void * x) { return swap_endian_64(read_64(x)); }
+
+
+IntRead int_readers[8] = {
+    read_8, read_16, read_32, read_64,
+    read_swap_8, read_swap_16, read_swap_32, read_swap_64
+};
+
+
+IntRead choose_int_read(int power, bool big_endian) {
+  /* Choose a read function pointer for a given int type and endian. */
+  return (IntRead) _choose_int_read_write(
+                      power, big_endian, (void *) int_readers);
+}
+
+
 /* --- */
 
 void * _choose_int_read_write(int power, bool big_endian, void ** list) {

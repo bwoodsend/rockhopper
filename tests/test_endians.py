@@ -76,3 +76,6 @@ def test_int_write(int_base, byteorder):
     out = ctypes.create_string_buffer(bytes)
     write(x, out)
     assert list(out[:]) == list(x.to_bytes(bytes, byteorder))
+
+    read = getattr(slug.dll, name.replace("write", "read"))
+    assert read(out) == x
