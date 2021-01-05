@@ -3,13 +3,16 @@
 """
 
 import numpy as np
-from cslug import CSlug, ptr, anchor
+from cslug import CSlug, ptr, anchor, Header
 
+endians_header = Header(*anchor("src/endians.h", "src/endians.c"),
+                        includes=["<stdbool.h>", '"_endian_typedefs.h"'])
 slug = CSlug(anchor(
     "_slugs/ragged_array",
     "src/ragged_array.c",
     "src/ragged_array.h",
-))  # yapf: disable
+    "src/endians.c",
+), headers=endians_header)  # yapf: disable
 
 
 class RaggedArray(object):
@@ -132,3 +135,10 @@ class RaggedArray(object):
         new = type(self)(flat, bounds[:-1], bounds[1:])
         slug.dll.repack(self._c_struct._ptr, new._c_struct._ptr)
         return new
+
+def _2_power(x):
+    from numbers import Integral
+    if isinstance(x, Integral):
+        return x
+    itemsize = np.dtype(x).itemsize
+    return next(i for i in range(8) if (1 << i) == itemsize)  # pragma: no branch

@@ -7,6 +7,8 @@ import pytest
 
 from rockhopper import RaggedArray
 
+pytestmark = pytest.mark.order(0)
+
 
 def test_implicit_bounds():
     flat = np.random.random(10)
