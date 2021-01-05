@@ -5,6 +5,7 @@
     :caption: Contents:
 
     getting-started
+    stubs/rockhopper
 
 
 Indices and tables
