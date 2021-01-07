@@ -179,6 +179,59 @@ class RaggedArray(object):
                       _big_endian(lengths_dtype))
         return out.data
 
+    @classmethod
+    def loads(cls, bin, rows=-1, dtype=None, lengths_dtype=np.intc):
+        """Deserialize a ragged array. This is the reciprocal of :meth:`dumps`.
+
+        Args:
+            bin (bytes):
+                Raw data to unpack.
+            rows (int):
+                Number of rows to parse. Defaults to :py:`-1` for unknown.
+            dtype (numpy.dtype):
+                Data type of the row contents in **bin**.
+            lengths_dtype (numpy.dtype):
+                Integer type of the row lengths in **bin**.
+        Returns:
+            RaggedArray:
+
+        Raises:
+            ValueError:
+                If **bin** ends prematurely or in the middle of a row. This is
+                indicative of either data corruption or, more likely, muddling
+                of dtypes.
+
+        """
+        dtype = np.dtype(dtype)
+        lengths_dtype = np.dtype(lengths_dtype)
+
+        # We need to know how many rows there will be in this new ragged array
+        # before creating and populating it.
+        if rows == -1:
+            # If it's not already known then it has to be counted.
+            rows = slug.dll.count_rows(ptr(bin), len(bin),
+                                       _2_power(lengths_dtype),
+                                       _big_endian(lengths_dtype),
+                                       dtype.itemsize)
+            if rows == -1:
+                # `count_rows()` returns -1 on error.
+                raise ValueError(
+                    "Raw `bin` data ended mid way through a row. Either this "
+                    "data is corrupt or the dtype(s) given are incorrect.")
+
+            # Run again with known number of `rows`.
+            return cls.loads(bin, rows, dtype, lengths_dtype)
+
+        items = (len(bin) - rows * lengths_dtype.itemsize) // dtype.itemsize
+
+        self = cls(np.empty(items, dtype=dtype), np.empty(rows + 1, np.intc))
+
+        slug.dll.load(self._c_struct._ptr, ptr(bin), len(bin),
+                      _2_power(lengths_dtype), _big_endian(lengths_dtype),
+                      dtype.itemsize)
+
+        return self
+
 
 def _2_power(dtype):
     """Convert an integer dtype to an enumerate used throughout the C code."""

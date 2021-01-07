@@ -4,6 +4,7 @@
 
 import numpy as np
 import pytest
+from cslug import ptr
 
 from rockhopper import RaggedArray
 from rockhopper._ragged_array import _2_power, _big_endian
@@ -27,7 +28,7 @@ def test_2_power():
 
 @pytest.mark.parametrize("dtype", [np.uint8, np.uint16, np.uint32])
 @pytest.mark.parametrize("byteorder", "<>=|")
-def test_dump(dtype, byteorder):
+def test_dump_load(dtype, byteorder):
     dtype = np.dtype(dtype).newbyteorder(byteorder)
     flat = np.arange(5, dtype=np.int8)
     self = RaggedArray.from_lengths(flat, [2, 3, 0])
@@ -42,3 +43,16 @@ def test_dump(dtype, byteorder):
 
     # Convert to lists only to make the pytest traceback more readable.
     assert list(bin) == list(b"".join(target))
+
+    from rockhopper._ragged_array import slug
+    assert slug.dll.count_rows(ptr(bin), len(bin), _2_power(dtype),
+                               _big_endian(dtype), flat.itemsize) == len(self)
+
+    with pytest.raises(ValueError):
+        RaggedArray.loads(bin.tobytes() + b"\x01", dtype=self.dtype,
+                          lengths_dtype=dtype)
+
+    parsed = RaggedArray.loads(bin, dtype=self.dtype, lengths_dtype=dtype)
+    assert np.array_equal(self.starts, parsed.starts)
+    assert np.array_equal(self.ends, parsed.ends)
+    assert np.array_equal(self.flat, parsed.flat)
