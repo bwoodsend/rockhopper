@@ -2,6 +2,8 @@
 """
 """
 
+import collections
+
 import numpy as np
 import pytest
 
@@ -91,3 +93,52 @@ def test_repacked():
     assert np.array_equal(packed.starts[1:], packed.ends[:-1])
     assert packed.starts[0] == 0
     assert packed.ends[-1] == len(packed.flat)
+
+
+@pytest.mark.parametrize("n", [10, 1, 0, 1000])
+def test_rectangular(n):
+    """Test :meth:`RaggedArray.to_rectangular_arrays()` on arrays of different
+    sizes.
+    """
+    np.random.seed(0)
+    self = RaggedArray(np.arange(n), np.sort(np.random.randint(0, n, n)))
+    lengths = np.array([len(i) for i in self])
+
+    out = self.to_rectangular_arrays()
+    out_shapes = [i.shape for i in out]
+
+    start = 0
+    for (count, length) in out_shapes:
+        assert np.all(lengths[start:start + count] == length)
+        start += count
+
+    if len(self):
+        assert np.array_equal(self.repacked().flat,
+                              np.concatenate(out, axis=None))
+    else:
+        assert len(out) == 0
+
+
+@pytest.mark.parametrize("n", [10, 1, 0, 1000])
+def test_sorted_rectangular(n):
+    """Test :meth:`RaggedArray.to_rectangular_arrays(reorder=True)`."""
+    np.random.seed(0)
+    self = RaggedArray(np.arange(n), np.sort(np.random.randint(0, n, n)))
+    args, out = self.to_rectangular_arrays(reorder=True)
+
+    # The shapes of the arrays in ``out`` should be counts of rows in ``self``
+    # with a given row length. ``out_shapes`` should be a list of
+    # ``(number_of_rows_of_length, row_length)`` pairs, sorted in ascending
+    # order of ``row_length``.
+    out_shapes = [i.shape for i in out]
+    # Check that the above is true.
+    counts = collections.Counter(len(i) for i in self)
+    assert [i[::-1] for i in sorted(counts.items())] == out_shapes
+
+    if len(args):
+        # The flattened data should have been reordered but otherwise preserved.
+        assert np.array_equal(self[args].repacked().flat,
+                              np.concatenate(out, axis=None))
+    else:
+        # ``np.concatenate()`` requires at least one input.
+        assert out == []

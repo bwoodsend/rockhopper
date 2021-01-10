@@ -232,6 +232,81 @@ class RaggedArray(object):
 
         return self
 
+    def _rectangular_slice(self, start, end):
+        """Slice ``self`` but convert the output to a regular rectangular array.
+
+        This requires that this array is packed, hence its being private.
+        """
+        width = self.ends[start] - self.starts[start]
+
+        if end >= len(self):
+            flat = self.flat[self.starts[start]:]
+            return flat.reshape((len(self) - start, width))
+
+        flat = self.flat[self.starts[start]:self.starts[end]]
+        return flat.reshape((end - start, width))
+
+    def to_rectangular_arrays(self, reorder=False):
+        """Convert to a :class:`list` of regular :class:`numpy.ndarray`\\ s.
+
+        Args:
+            reorder (bool):
+                If true, pre-sort into order of ascending lengths to minimise
+                divisions needed. Use if the row order is unimportant.
+
+        Returns:
+            Union[tuple, list]:
+                list[numpy.ndarray]:
+                    If **reorder** is false.
+                numpy.ndarray, list[numpy.ndarray]:
+                    If **reorder** is true. The first argument is the args (from
+                    :func:`numpy.argsort`) used to pre-sort.
+
+        The :class:`RaggedArray` is divided into chunks of consecutive rows
+        which have the same length. Each chunk is then converted to a plain 2D
+        :class:`numpy.ndarray`. These 2D arrays are returned in a :class:`list`.
+        ::
+
+            >>> ragged_array([
+            ...     [1, 2],
+            ...     [3, 4],
+            ...     [5, 6, 7],
+            ...     [8, 9, 10],
+            ... ]).to_rectangular_arrays()
+            [array([[1, 2], [3, 4]]), array([[ 5,  6,  7], [ 8,  9, 10]])]
+
+        """
+        if reorder:
+            args = np.argsort(self.ends - self.starts)
+            return args, self[args].to_rectangular_arrays()
+
+        # The empty case requires special handling or it hits index errors
+        # further on.
+        if len(self) == 0:
+            return []
+
+        # This function uses slices on raw ``self.flat`` and thereby assumes
+        # that consecutive rows are consecutive in ``self.flat``. To enforce
+        # this case:
+        self = self.repacked()
+
+        lengths = self.ends - self.starts
+
+        out = []
+        start = 0
+        # For every row number that isn't the same length as its next row:
+        for end in np.nonzero(lengths[1:] != lengths[:-1])[0]:
+            end += 1
+            # slice from the last slice end to this one.
+            out.append(self._rectangular_slice(start, end))
+            start = end
+
+        # The above catches everything before a change in row length but not the
+        # final chunk after the last change. Add it.
+        out.append(self._rectangular_slice(start, len(self)))
+
+        return out
+
 
 def _2_power(dtype):
     """Convert an integer dtype to an enumerate used throughout the C code."""
