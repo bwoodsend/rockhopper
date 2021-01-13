@@ -77,7 +77,10 @@ def test_from_nested(dtype):
     assert len(self) == len(NESTED)
     assert np.array_equal([len(i) for i in NESTED], self.ends - self.starts)
     assert all(map(np.array_equal, self, NESTED))
-    assert self.dtype == dtype
+    if dtype is None:
+        assert self.dtype == int
+    else:
+        assert self.dtype == dtype
 
 
 def test_repacked():
