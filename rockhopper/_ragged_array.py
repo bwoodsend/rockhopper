@@ -7,6 +7,8 @@ import sys
 import numpy as np
 from cslug import CSlug, ptr, anchor, Header
 
+NUMPY_REPR = False
+
 BIG_ENDIAN = sys.byteorder == "big"
 endians_header = Header(*anchor("src/endians.h", "src/endians.c"),
                         includes=["<stdbool.h>", '"_endian_typedefs.h"'])
@@ -165,6 +167,56 @@ class RaggedArray(object):
 
     def __iter__(self):
         return (self[i] for i in range(len(self)))
+
+    def _to_string(self, prefix, separator):
+        """Convert to :class:`str`. A loose ragged equivalent of
+        :func:`numpy.array2string()`.
+
+        Args:
+            prefix (str):
+                How far to indent. See the **prefix** option for
+                :func:`numpy.array2string()`.
+            separator (str):
+                The deliminator to be put between elements.
+
+        Returns:
+            str: Something stringy.
+
+        """
+        # TODO: Maybe expand and make this method public.
+        _str = lambda x: np.array2string(x, prefix=prefix, separator=separator)
+
+        if len(self) > np.get_printoptions()['threshold']:
+            # Very long arrays should be summarised as [a, b, c, ..., x, y, z].
+            edge_items = np.get_printoptions()["edgeitems"]
+
+            rows = [_str(i) for i in self[:edge_items]]
+            rows.append("...")
+            rows += [_str(i) for i in self[-edge_items:]]
+
+        else:
+            rows = [_str(i) for i in self]
+
+        # A downside of doing everything per row is that each row gets formatted
+        # differently. NumPy don't expose any of their fancy dragon4 algorithm
+        # functionality for choosing format options so I don't see any practical
+        # way of changing this.
+
+        return (separator.rstrip() + "\n" + " " * len(prefix)).join(rows)
+
+    def __repr__(self):
+        prefix = type(self).__name__ + ".from_nested("
+
+        # I might make this a proper option in future.
+        if NUMPY_REPR:  # pragma: no cover
+            # Old school NumPy style formatting.
+            return prefix + "[" + self._to_string(prefix + "[", ", ") + "])"
+
+        # More trendy trailing comma formatting for `black` fanatics.
+        return prefix + "[\n    " + self._to_string("    ", ", ") + ",\n])"
+
+    def __str__(self):
+        return "[" + self._to_string(" ", " ") + "]"
 
     def repacked(self):
         length = (self.ends - self.starts).sum()
