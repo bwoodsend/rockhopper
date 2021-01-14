@@ -122,7 +122,7 @@ class RaggedArray(object):
         :meth:`numpy.ndarray.astype`.
 
         Args:
-            dtype (numpy.dtype):
+            dtype (Union[numpy.dtype, Type[numpy.generic]]):
                 Desired data type for the :attr:`flat` attribute.
 
         Returns:
@@ -230,7 +230,7 @@ class RaggedArray(object):
         """Serialise into a :class:`memoryview`.
 
         Args:
-            lengths_dtype (numpy.dtype):
+            lengths_dtype (Union[numpy.dtype, Type[numpy.generic]]):
                 Integer type.
 
         Returns:
@@ -275,9 +275,9 @@ class RaggedArray(object):
                 Raw data to unpack.
             rows (int):
                 Number of rows to parse. Defaults to :py:`-1` for unknown.
-            dtype (numpy.dtype):
+            dtype (Union[numpy.dtype, Type[numpy.generic]]):
                 Data type of the row contents in **bin**.
-            lengths_dtype (numpy.dtype):
+            lengths_dtype (Union[numpy.dtype, Type[numpy.generic]]):
                 Integer type of the row lengths in **bin**.
         Returns:
             RaggedArray:
