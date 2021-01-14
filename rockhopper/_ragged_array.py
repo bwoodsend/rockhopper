@@ -18,6 +18,14 @@ slug = CSlug(anchor(
 ), headers=endians_header)  # yapf: disable
 
 
+def prod(iterable):
+    """Equivalent to :func:`math.prod` introduced in Python 3.8. """
+    out = 1
+    for i in iterable:
+        out = out * i
+    return out
+
+
 class RaggedArray(object):
     """A 2D array with rows of mixed lengths.
 
@@ -64,7 +72,7 @@ class RaggedArray(object):
 
         self._c_struct = slug.dll.RaggedArray(
             ptr(self.flat),
-            self.flat.dtype.itemsize,
+            self.itemsize,
             len(self),
             ptr(self.starts),
             ptr(self.ends),
@@ -79,6 +87,33 @@ class RaggedArray(object):
 
         """
         return self.flat.dtype
+
+    @property
+    def itemshape(self):
+        """The shape of an individual element from :attr:`flat`.
+
+        Returns:
+            tuple: :py:`self.flat.shape[1:]`.
+
+        Assuming :attr:`flat` is not empty, this is equivalent to
+        :py:`self.flat[0].shape`. For a 2D ragged array, this is always simply
+        :py:`()`.
+
+        """
+        return self.flat.shape[1:]
+
+    @property
+    def itemsize(self):
+        """The size in bytes of an individual element from :attr:`flat`.
+
+        Returns:
+            int: Size of one element.
+
+        Assuming :attr:`flat` is not empty, this is equivalent to
+        :py:`len(self.flat[0].tobytes()`.
+
+        """
+        return prod(self.itemshape) * self.dtype.itemsize
 
     def astype(self, dtype):
         """Cast the contents to a given **dtype**. Analogous to
@@ -166,7 +201,7 @@ class RaggedArray(object):
 
         # The total length of the flat data. Note, `self.flat.size` would not be
         # a safe shortcut unless `self.repacked()` has been called 1st.
-        length = (self.ends - self.starts).sum() * self.dtype.itemsize
+        length = (self.ends - self.starts).sum() * self.itemsize
         # And the lengths of the lengths...
         length += len(self) * lengths_dtype.itemsize
 
@@ -241,10 +276,10 @@ class RaggedArray(object):
 
         if end >= len(self):
             flat = self.flat[self.starts[start]:]
-            return flat.reshape((len(self) - start, width))
+            return flat.reshape((len(self) - start, width) + self.itemshape)
 
         flat = self.flat[self.starts[start]:self.starts[end]]
-        return flat.reshape((end - start, width))
+        return flat.reshape((end - start, width) + self.itemshape)
 
     def to_rectangular_arrays(self, reorder=False):
         """Convert to a :class:`list` of regular :class:`numpy.ndarray`\\ s.

@@ -56,3 +56,28 @@ def test_dump_load(dtype, byteorder):
     assert np.array_equal(self.starts, parsed.starts)
     assert np.array_equal(self.ends, parsed.ends)
     assert np.array_equal(self.flat, parsed.flat)
+
+
+def test_3d():
+    self = RaggedArray.from_nested([
+        [[0, 1, 2], [3, 4, 5]],
+        [[6, 7, 8], [9, 10, 11]],
+        [[12, 13, 14], [15, 16, 17], [18, 19, 20]],
+        [],
+    ], dtype=np.intc)
+
+    # By using the same dtype as starts and ends (intc), it is safe (and far
+    # easier to read) to think of the raw binary from ``self.dumps()`` as a
+    # series of integers.
+
+    target = [2, 0, 1, 2, 3, 4, 5,
+              2, 6, 7, 8, 9, 10, 11,
+              3, 12, 13, 14, 15, 16, 17, 18, 19, 20,
+              0]  # yapf: disable
+
+    assert np.frombuffer(self.dumps(), np.intc).tolist() == target
+
+    parsed = RaggedArray.loads(self.dumps(), dtype=np.dtype(np.intc) * 3)
+    assert np.array_equal(self.starts, parsed.starts)
+    assert np.array_equal(self.ends, parsed.ends)
+    assert np.array_equal(self.flat, parsed.flat)

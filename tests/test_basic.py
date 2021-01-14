@@ -145,3 +145,32 @@ def test_sorted_rectangular(n):
     else:
         # ``np.concatenate()`` requires at least one input.
         assert out == []
+
+
+def test_3d():
+    self = RaggedArray.from_nested([
+        [[0, 1, 2], [3, 4, 5]],
+        [[6, 7, 8], [9, 10, 11]],
+        [[12, 13, 14], [15, 16, 17], [18, 19, 20]],
+        [],
+    ])
+    assert np.array_equal(self.flat, np.arange(21).reshape((7, 3)))
+    assert len(self) == 4
+    assert self.dtype == int
+    assert self.itemshape == (3,)
+    assert self.itemsize == 3 * self.dtype.itemsize
+    assert self[-1].shape == (0, 3)
+
+    # This array is already packed so `repacked` should be an exact copy.
+    repacked = self.repacked()
+    assert np.array_equal(self.flat, repacked.flat)
+    assert np.array_equal(self.starts, repacked.starts)
+    assert np.array_equal(self.ends, repacked.ends)
+
+    cuboidals = self.to_rectangular_arrays()
+    assert len(cuboidals) == 3
+    assert cuboidals[0].shape == (2, 2, 3)
+    assert cuboidals[1].shape == (1, 3, 3)
+    assert cuboidals[2].shape == (1, 0, 3)
+    flat = np.concatenate([i.reshape((-1, 3)) for i in cuboidals], axis=0)
+    assert np.array_equal(flat, self.flat)
