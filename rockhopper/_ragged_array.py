@@ -343,6 +343,9 @@ class RaggedArray(object):
         return out
 
 
+ragged_array = RaggedArray.from_nested
+
+
 def _2_power(dtype):
     """Convert an integer dtype to an enumerate used throughout the C code."""
     # Functionally this is equivalent to ``int(math.log2(dtype.itemsize))``.
