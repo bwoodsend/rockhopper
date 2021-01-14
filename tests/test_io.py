@@ -81,3 +81,46 @@ def test_3d():
     assert np.array_equal(self.starts, parsed.starts)
     assert np.array_equal(self.ends, parsed.ends)
     assert np.array_equal(self.flat, parsed.flat)
+
+
+@pytest.mark.parametrize("lengths_dtype", [np.uint8, np.uint16, np.uint32])
+def test_empty(lengths_dtype):
+    self = RaggedArray.loads(b"", lengths_dtype=lengths_dtype)
+    assert len(self) == 0
+    assert len(self.flat) == 0
+
+
+def test_corruption():
+    """Invalid input should raise a deliberate :class:`ValueError`. Not a
+    seg-fault."""
+
+    bin = np.array([2, 100, 101, 1, 102, 0], np.uint16).tobytes()
+
+    # End halfway through the 1st length.
+    with pytest.raises(ValueError, match="through a row"):
+        RaggedArray.loads(bin[:1], lengths_dtype=np.uint16)
+    with pytest.raises(ValueError, match="leaves -1 bytes for the flat data"):
+        RaggedArray.loads(bin[:1], lengths_dtype=np.uint16, rows=1)
+
+    assert len(RaggedArray.loads(bin[:1], rows=0)) == 0
+
+    # End after the 1st row length but before the row data.
+    with pytest.raises(ValueError, match="through a row"):
+        RaggedArray.loads(bin[:2], lengths_dtype=np.uint16)
+
+    # Again but with rows specified.
+    with pytest.raises(ValueError, match="Only 0 out of .* 1 rows were read."):
+        RaggedArray.loads(bin[:2], lengths_dtype=np.uint16, rows=1)
+
+    # A full row of binary data - should work.
+    RaggedArray.loads(bin[:6], lengths_dtype=np.uint16, dtype=np.uint16)
+
+    # But not of the user expects more rows.
+    with pytest.raises(ValueError, match="Only 1 out of .* 2 rows were read."):
+        RaggedArray.loads(bin[:6], lengths_dtype=np.uint16, dtype=np.uint16,
+                          rows=2)
+
+    # Be sure the empty last row doesn't get lost.
+    assert len(RaggedArray.loads(bin, lengths_dtype=np.uint16,
+                                 dtype=np.uint16)) == 3
+    RaggedArray.loads(bin, lengths_dtype=np.uint16, dtype=np.uint16, rows=3)

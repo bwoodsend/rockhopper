@@ -309,13 +309,25 @@ class RaggedArray(object):
             # Run again with known number of `rows`.
             return cls.loads(bin, rows, dtype, lengths_dtype)
 
-        items = (len(bin) - rows * lengths_dtype.itemsize) // dtype.itemsize
+        free = len(bin) - rows * lengths_dtype.itemsize
+        items = free // dtype.itemsize
+        if items < 0:
+            raise ValueError(
+                f"With `bin` of length {len(bin)}, {rows} rows of "
+                f"{lengths_dtype.itemsize} byte lengths leaves {free} bytes "
+                f"for the flat data. Perhaps your data types are wrong?")
 
         self = cls(np.empty(items, dtype=dtype), np.empty(rows + 1, np.intc))
 
-        slug.dll.load(self._c_struct._ptr, ptr(bin), len(bin),
-                      _2_power(lengths_dtype), _big_endian(lengths_dtype),
-                      dtype.itemsize)
+        _rows = slug.dll.load(self._c_struct._ptr, ptr(bin), len(bin), rows,
+                              _2_power(lengths_dtype),
+                              _big_endian(lengths_dtype), dtype.itemsize)
+        if _rows < rows:
+            raise ValueError(
+                f"Raw `bin` data ended too soon. "
+                f"Only {_rows} out of the requested {rows} rows were read. "
+                f"Either this data is corrupt or the dtype(s) given are "
+                "incorrect.")
 
         return self
 

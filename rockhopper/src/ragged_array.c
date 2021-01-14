@@ -52,7 +52,7 @@ int count_rows(void * raw, int raw_length, int length_power, int big_endian,
   int rows = 0;
 
   void * end = raw + raw_length;
-  while (raw < end) {
+  while (raw <= end - (1 << length_power)) {
     uint64_t length = read(raw);
     raw += (1 << length_power);
     raw += length * itemsize;
@@ -67,8 +67,8 @@ int count_rows(void * raw, int raw_length, int length_power, int big_endian,
 }
 
 
-void load(RaggedArray * self, void * raw, int raw_length, int length_power,
-          int big_endian) {
+uint64_t load(RaggedArray * self, void * raw, uint64_t raw_length, int rows,
+              int length_power, int big_endian) {
   /* The workhorse behind ``RaggedArray.loads()``. */
 
   IntRead read = choose_int_read(length_power, big_endian);
@@ -77,11 +77,20 @@ void load(RaggedArray * self, void * raw, int raw_length, int length_power,
   void * raw_end = raw + raw_length;
 
   // Parse the array a row at a time:
-  for (int row = 0; raw < raw_end; row++) {
+  for (int row = 0; row < rows; row++) {
+
+    // Escape if there is not enough input left to read another length. This
+    // shall be propagated as an error in Python.
+    if (raw > raw_end - (1 << length_power)) return row;
+
     // Read the `length` of the row then move the `raw` pointer onto the row's
     // data.
     uint64_t length = read(raw);
     raw += (1 << length_power);
+
+    // Again, escape if there is not enough remaining input to contain the
+    // expected row.
+    if (raw > raw_end - length * self -> itemsize) return row;
 
     // Copy the row data itself and move the input pointer to the next row.
     memcpy(self -> flat + start * self -> itemsize, raw,
@@ -95,4 +104,5 @@ void load(RaggedArray * self, void * raw, int raw_length, int length_power,
     self -> ends[row] = start;
 
   }
+  return rows;
 }
