@@ -93,6 +93,7 @@ with open("rst_prolog.txt") as f:
 intersphinx_mapping = {
     'python': ('http://docs.python.org/3', None),
     'numpy': ('https://numpy.org/doc/stable/', None),
+    'pandas': ('http://pandas.pydata.org/pandas-docs/dev', None),
 }
 
 # -- Options for HTML output -------------------------------------------

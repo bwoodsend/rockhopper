@@ -106,3 +106,27 @@ uint64_t load(RaggedArray * self, void * raw, uint64_t raw_length, int rows,
   }
   return rows;
 }
+
+
+void sub_enumerate(int * ids, int len_ids, int * counts, int * enums) {
+  /* Sub-enumerate grouped ids.
+
+  The sub-enumerates **enums** are defined as:
+
+    enums[i] := count(ids[:i] == ids[i])
+
+  or how many times have we already seen ``ids[i]`` in ``ids``.
+
+  A happy side-effect of this process is that it also counts how many of each
+  value is in **ids**. These counts populate the **counts** array.
+  */
+
+  // For each id in ``ids``:
+  for (int i = 0; i < len_ids; i++) {
+    int id = ids[i];
+    // Mark how many times we've already seen ``id``.
+    enums[i] = counts[id];
+    // Increment the count for ``id`` for future iterations.
+    counts[id] += 1;
+  }
+}

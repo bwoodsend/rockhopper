@@ -406,6 +406,74 @@ class RaggedArray(object):
 
         return out
 
+    @classmethod
+    def group_by(cls, data, ids, id_max=None, check_ids=True):
+        """Group **data** by **ids**.
+
+        Args:
+            data (numpy.ndarray):
+                Arbitrary values to be grouped. **data** can be of any dtype and
+                be multidimensional.
+            ids (numpy.ndarray):
+                Integer array with the same dimensions as **data**.
+            id_max (int):
+                :py:`np.max(ids) + 1`. If already known, providing this value
+                prevents it from being redundantly recalculated.
+
+        Returns:
+            RaggedArray:
+
+        For each value in **data**, its corresponding ID in **ids** determines
+        in which row the data value is placed. The order of data within rows is
+        consistent with the order the appear in **data**.
+
+        This method is similar to :meth:`pandas.DataFrame.groupby`. However, it
+        will not uniquify and enumerate the property to group by.
+
+        """
+        # Just run ``groups_by()`` but with only one ``datas``.
+        return next(cls.groups_by(ids, data, id_max=id_max))
+
+    @classmethod
+    def groups_by(cls, ids, *datas, id_max=None, check_ids=True):
+        """Group each data from **datas** by **ids**.
+
+        This function is equivalent to, but faster than, calling
+        :meth:`group_by` multiple times with the same **ids**.
+        """
+        # Type normalisation and sanity checks.
+        ids = np.asarray(ids)
+        datas = [np.asarray(i) for i in datas]
+        if id_max is None:
+            id_max = np.max(ids) + 1
+        elif check_ids and np.any(ids >= id_max):
+            max = ids.argmax()
+            raise IndexError(f"All ids must be < id_max but "
+                             f"ids[{max}] = {ids[max]} >= {id_max}.")
+        if check_ids and np.any(ids < 0):
+            min = ids.argmin()
+            raise IndexError(
+                f"All ids must be >= 0 but ids[{min}] = {ids[min]}.")
+
+        counts, sub_ids = sub_enumerate(ids, id_max)
+
+        # The ``counts`` determine the lengths of each row should.
+        # From there we can work out the start and end point for each row.
+        bounds = np.empty(id_max + 1, np.intc)
+        counts.cumsum(out=bounds[1:])
+        bounds[0] = 0
+
+        # The ``sub_ids`` are the position along the row for each element.
+        # Without ``sub_ids``, elements from the same group will all write to
+        # the beginning of their row, and thus overwrite each other.
+        unique_ids = bounds[ids] + sub_ids
+        # ``unique_ids`` should contain exactly one of each element in
+        # ``range(len(ids))``.
+        for data in datas:
+            flat = np.empty(data.shape, data.dtype, order="C")
+            flat[unique_ids] = data
+            yield cls(flat, bounds)
+
 
 ragged_array = RaggedArray.from_nested
 
@@ -428,3 +496,31 @@ def _big_endian(dtype):
     # not applicable (for string types - which we shouldn't need anyway - or
     # single byte types).
     return BIG_ENDIAN
+
+
+def sub_enumerate(ids, id_max):
+    """Wrapper of :c:`sub_enumerate()` from src/ragged_array.c
+
+    Args:
+        ids (numpy.ndarray):
+            A group number for each element.
+        id_max (int):
+            A strict upper bound for the **ids**.
+
+    Returns:
+        counts (numpy.ndarray):
+            :py:`counts[x] := ids.count(x)`.
+        sub_ids (numpy.ndarray):
+            :py:`sub_ids[i] := ids[:i].count(ids[i])`.
+
+    Raises:
+        IndexError:
+            If either :py:`(0 <= ids).all() or :py`(ids < id_max).all()`
+            are not satisfied.
+
+    """
+    ids = np.ascontiguousarray(ids, dtype=np.intc)
+    counts = np.zeros(int(id_max), np.intc)
+    sub_ids = np.empty_like(ids)
+    slug.dll.sub_enumerate(ptr(ids), ids.size, ptr(counts), ptr(sub_ids))
+    return counts, sub_ids
