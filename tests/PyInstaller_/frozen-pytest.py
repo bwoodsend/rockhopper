@@ -2,8 +2,8 @@
 """
 Freeze pytest.main() with rockhopper included.
 """
+import sys
+import pytest
 import rockhopper
 
-import pytest
-
-pytest.main()
+pytest.main(sys.argv[1:] + ["--no-cov"])
