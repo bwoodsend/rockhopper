@@ -61,6 +61,68 @@ class RaggedArray(object):
                 end of the previous row.
             ends:
                 The index of **flat** where each row ends.
+            dtype:
+                The :class:`numpy.dtype` of the array. Usually this can be
+                inferred from **flat** and is therefore not required to be set
+                explicitly. To indicate that multiple scalars should be
+                considered as one item, use a :class:`tuple` dtype.
+
+        .. seealso::
+
+            Explicit construction is rarely the most convenient way to build a
+            :class:`RaggedArray`.
+            See :meth:`from_nested` to construct from lists of lists.
+            Or :meth:`from_lengths` to construct from flat data and row lengths.
+            Or :meth:`group_by` to specify the row number explicitly for each
+            item.
+
+        Examples:
+
+            Assuming the setup code::
+
+                import numpy as np
+                from rockhopper import RaggedArray
+
+                flat = np.arange(10)
+
+            ::
+
+                >>> bounds = [0, 4, 7, 10]
+                >>> RaggedArray(flat, bounds)
+                RaggedArray.from_nested([
+                    [0, 1, 2, 3],
+                    [4, 5, 6],
+                    [7, 8, 9],
+                ])
+
+            The **bounds** need not start at the beginning and end and the end.
+            Note however that the leading and trailing items in **flat** are not
+            represented in the repr. ::
+
+                >>> bounds = [2, 4, 4, 5, 9]
+                >>> RaggedArray(flat, bounds)
+                RaggedArray.from_nested([
+                    [2, 3],
+                    [],
+                    [4],
+                    [5, 6, 7, 8],
+                ])
+
+            To be able to have gaps between rows or overlapping rows set both
+            **starts** and **ends**. ::
+
+                >>> starts = [0, 3, 1]
+                >>> ends = [6, 6, 5]
+                >>> RaggedArray(flat, starts, ends)
+                RaggedArray.from_nested([
+                    [0, 1, 2, 3, 4, 5],  # flat[0:6]
+                    [3, 4, 5],           # flat[3:6]
+                    [1, 2, 3, 4],        # flat[1:5]
+                ])
+
+            This form is typically not very useful but is given more to explain
+            how the :class:`RaggedArray` works internally.
+            Copy-less slicing uses this form heavily.
 
         """
         self.flat = np.asarray(flat, dtype=dtype, order="C")
