@@ -30,3 +30,4 @@ rules =
   "platform_system != 'Linux'": Linux
   "sys_platform != 'msys'": msys
   "platform_system != 'FreeBSD'": FreeBSD
+  "__import__('sys').maxsize < (1 << 32)": 64bit

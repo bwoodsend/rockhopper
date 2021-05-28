@@ -2,6 +2,7 @@
 """
 """
 
+import sys
 import collections
 
 import numpy as np
@@ -174,3 +175,11 @@ def test_3d():
     assert cuboidals[2].shape == (1, 0, 3)
     flat = np.concatenate([i.reshape((-1, 3)) for i in cuboidals], axis=0)
     assert np.array_equal(flat, self.flat)
+
+
+@pytest.mark.skipif(sys.maxsize < 1 << 32,
+                    reason="Irrelevant on 32 bit platforms.")
+def test_too_big():
+    flat = np.empty(1 << 31, np.dtype([]))
+    with pytest.raises(NotImplementedError):
+        RaggedArray(flat, [])
