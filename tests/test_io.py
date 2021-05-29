@@ -2,6 +2,8 @@
 """
 """
 
+import pickle
+
 import numpy as np
 import pytest
 from cslug import ptr
@@ -124,3 +126,34 @@ def test_corruption():
     assert len(RaggedArray.loads(bin, lengths_dtype=np.uint16,
                                  dtype=np.uint16)) == 3
     RaggedArray.loads(bin, lengths_dtype=np.uint16, dtype=np.uint16, rows=3)
+
+
+class ImplementationFromTheFuture(RaggedArray):
+    """A subclass of RaggedArray which, when pickling, pretends to use an
+     pickling format from the future."""
+
+    def __getstate__(self):
+        return 1000, "12.34.56", ("some", "nonsense")
+
+
+def test_pickle():
+    self = RaggedArray.from_nested([
+        ["cake", "biscuits"],
+        ["socks"],
+        ["orange", "lemon", "pineapple"],
+    ])
+
+    copied = pickle.loads(pickle.dumps(self))
+    assert np.array_equal(self.starts, copied.starts)
+    assert np.array_equal(self.ends, copied.ends)
+    assert np.array_equal(self.flat, copied.flat)
+
+
+def test_pickle_versioning():
+    self = ImplementationFromTheFuture([], [])
+    pickled = pickle.dumps(self)
+    with pytest.raises(
+            pickle.UnpicklingError,
+            match=r'(?s).* version of rockhopper \(12.34.56\) which '
+            r'.* install "rockhopper >= 12.34.56"\nshould'):
+        pickle.loads(pickled)

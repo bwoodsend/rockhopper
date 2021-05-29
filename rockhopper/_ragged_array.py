@@ -547,6 +547,26 @@ class RaggedArray(object):
             flat[unique_ids] = data
             yield cls(flat, bounds)
 
+    # For pickle.
+    def __getstate__(self):
+        # Unfortunately this will lose the memory efficiency of letting starts
+        # and ends overlap.
+        # I'm choosing to version this pickle function so that, if I fix the
+        # above, then I can avoid version mismatch chaos.
+        from rockhopper import __version__
+        return 0, __version__, self.flat, self.starts, self.ends
+
+    def __setstate__(self, state):
+        pickle_version, rockhopper_version, *state = state
+        if pickle_version > 0:
+            import pickle
+            raise pickle.UnpicklingError(
+                "This ragged array was pickled with a newer version of "
+                f"rockhopper ({rockhopper_version}) which wrote its pickles "
+                f'differently. Running:\n    pip install '
+                f'"rockhopper >= {rockhopper_version}"\nshould fix this.')
+        self.__init__(*state)
+
 
 ragged_array = RaggedArray.from_nested
 
