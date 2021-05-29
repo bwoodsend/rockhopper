@@ -22,7 +22,7 @@ def test_implicit_bounds():
     assert np.all(self.starts == bounds[:-1])
     assert np.all(self.ends == bounds[1:])
 
-    _test_get_item(self)
+    _test_get_row(self)
     assert RaggedArray(flat, bounds, dtype=np.float32).dtype == np.float32
 
 
@@ -36,12 +36,12 @@ def test_explicit_bounds():
     assert np.all(self.starts == starts)
     assert np.all(self.ends == ends)
 
-    _test_get_item(self)
+    _test_get_row(self)
 
     assert self.astype(np.float32).dtype == np.float32
 
 
-def _test_get_item(self):
+def _test_get_row(self):
     assert len(self) == len(self.starts) == len(self.ends)
 
     for (i, row) in enumerate(self):
