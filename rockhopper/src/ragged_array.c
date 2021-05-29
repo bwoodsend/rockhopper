@@ -22,12 +22,18 @@ void repack(RaggedArray * old, RaggedArray * new) {
 }
 
 
-void dump(RaggedArray * self, void * out, int length_power, int big_endian) {
+int dump(RaggedArray * self, void * out, int length_power, int big_endian) {
   IntWrite write = choose_int_write(length_power, big_endian);
+  int max_length = 1 << (8 << length_power);
 
   for (int i = 0; i < self -> length; i++) {
 
     int length = self -> ends[i] - self -> starts[i];
+
+    // Escape if given a value too large to fit in the chosen integer type.
+    if ((1 << length_power < (int) sizeof(int)) && (length >= max_length)) {
+      return i;
+     }
 
     write(length, out);
     out += (1 << length_power);
@@ -37,6 +43,8 @@ void dump(RaggedArray * self, void * out, int length_power, int big_endian) {
     out += length * self -> itemsize;
 
   }
+  // Return -1 to indicate that no row lengths were too long.
+  return -1;
 }
 
 

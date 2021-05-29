@@ -335,8 +335,13 @@ class RaggedArray(object):
         # time initialising it.
         out = np.empty(length, dtype=np.byte)
 
-        slug.dll.dump(self._c_struct._ptr, ptr(out), _2_power(lengths_dtype),
-                      _big_endian(lengths_dtype))
+        failed_row = slug.dll.dump(self._c_struct._ptr, ptr(out),
+                                   _2_power(lengths_dtype),
+                                   _big_endian(lengths_dtype))
+        if failed_row != -1:
+            raise OverflowError(
+                f"Row {failed_row} with length {len(self[failed_row])} "
+                f"is too long to write with an {lengths_dtype.name} integer.")
         return out.data
 
     @classmethod

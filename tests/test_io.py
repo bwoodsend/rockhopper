@@ -128,6 +128,17 @@ def test_corruption():
     RaggedArray.loads(bin, lengths_dtype=np.uint16, dtype=np.uint16, rows=3)
 
 
+def test_overflow():
+    """Test dumps() for large row lengths with too small row-length dtype."""
+
+    self = RaggedArray.from_lengths(np.arange(1000), [0, 150, 255, 256, 300])
+    with pytest.raises(OverflowError,
+                       match="Row 3 with length 256 is .* an uint8 integer."):
+        self.dumps(lengths_dtype=np.uint8)
+
+    self.dumps(np.int16)
+
+
 class ImplementationFromTheFuture(RaggedArray):
     """A subclass of RaggedArray which, when pickling, pretends to use an
      pickling format from the future."""
