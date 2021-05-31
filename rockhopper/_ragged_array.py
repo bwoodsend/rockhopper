@@ -49,7 +49,7 @@ class RaggedArray(object):
     starts: np.ndarray
     ends: np.ndarray
 
-    def __init__(self, flat, starts, ends=None, dtype=None):
+    def __init__(self, flat, starts, ends=None, dtype=None, check=True):
         """The default way to construct a :class:`RaggedArray` is explicitly
         from a :attr:`flat` contents array and either row :attr:`starts` and
         :attr:`ends` arrays or, more commonly, a *bounds* array.
@@ -68,6 +68,12 @@ class RaggedArray(object):
                 inferred from **flat** and is therefore not required to be set
                 explicitly. To indicate that multiple scalars should be
                 considered as one item, use a :class:`tuple` dtype.
+            check:
+                If true (default), verify that **starts** and **ends** are
+                valid (via :meth:`check`). Please only disable this if you need
+                to a construct a ragged array by first creating an uninitialised
+                array to then populating it. Invalid arrays can lead to
+                seg-faults.
 
         .. seealso::
 
@@ -153,6 +159,43 @@ class RaggedArray(object):
             ptr(self.starts),
             ptr(self.ends),
         )
+
+        if check:
+            self.check()
+
+    def check(self):
+        """Verify that this array has valid shape.
+
+        Raises:
+            ValueError:
+                If :attr:`starts` and :attr:`ends` are not of the same length.
+            ValueError:
+                If any row has a negative length. (0 length rows are ok.)
+            IndexError:
+                If any row starts (:attr:`starts`) are negative.
+            IndexError:
+                If any row ends (:attr:`ends`) are out of bounds (>= len(flat)).
+
+        """
+        if len(self.starts) != len(self.ends):
+            raise ValueError(f"The lengths of starts ({len(self.starts)}) and "
+                             f"ends ({len(self.ends)}) do not match.")
+
+        for index in _violates(self.starts > self.ends):
+            raise ValueError(f"Row {index}, "
+                             f"starting at flat[{self.starts[index]}] "
+                             f"and ending at flat[{self.ends[index]}], "
+                             f"has a negative length "
+                             f"({self.ends[index] - self.starts[index]}).")
+
+        for index in _violates(self.starts < 0):
+            raise IndexError(f"Invalid value in `starts` attribute: "
+                             f"starts[{index}] = {self.starts[index]} < 0")
+
+        for index in _violates(self.ends > len(self.flat)):
+            raise IndexError(f"Invalid value in `ends` attribute: "
+                             f"ends[{index}] = {self.ends[index]} >= "
+                             f"len(flat) = {len(self.flat)}")
 
     @property
     def dtype(self):
@@ -296,7 +339,7 @@ class RaggedArray(object):
         length = (self.ends - self.starts).sum()
         flat = np.empty((length,) + self.flat.shape[1:], self.flat.dtype)
         bounds = np.empty(len(self.starts) + 1, np.intc)
-        new = type(self)(flat, bounds[:-1], bounds[1:])
+        new = type(self)(flat, bounds[:-1], bounds[1:], self.dtype, check=False)
         slug.dll.repack(self._c_struct._ptr, new._c_struct._ptr)
         return new
 
@@ -396,7 +439,8 @@ class RaggedArray(object):
                 f"{lengths_dtype.itemsize} byte lengths leaves {free} bytes "
                 f"for the flat data. Perhaps your data types are wrong?")
 
-        self = cls(np.empty(items, dtype=dtype), np.empty(rows + 1, np.intc))
+        self = cls(np.empty(items, dtype=dtype), np.empty(rows + 1, np.intc),
+                   check=False)
 
         _rows = slug.dll.load(self._c_struct._ptr, ptr(bin), len(bin), rows,
                               _2_power(lengths_dtype),
@@ -629,3 +673,10 @@ def sub_enumerate(ids, id_max):
     sub_ids = np.empty_like(ids)
     slug.dll.sub_enumerate(ptr(ids), ids.size, ptr(counts), ptr(sub_ids))
     return counts, sub_ids
+
+
+def _violates(mask):
+    """Yield the index of the first true element, if any, of the boolean array
+    **mask**. Otherwise don't yield at all."""
+    if np.any(mask):
+        yield np.argmax(mask)

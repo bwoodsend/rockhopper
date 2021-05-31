@@ -194,3 +194,23 @@ COMPOUND = [[[1, 2]], [[3, 4], [5, 6]], []]
 def test_to_list(nested):
     self = ragged_array(nested)
     assert self.tolist() == nested
+
+
+def test_check():
+    with pytest.raises(ValueError,
+                       match=r".* lengths .* \(5\) .* \(6\) do not match"):
+        RaggedArray(np.empty(10), np.arange(5), np.arange(6))
+
+    with pytest.raises(ValueError,
+                       match=r"Row 2, .* flat\[5\] .* flat\[3\], .* \(-2\)"):
+        RaggedArray(np.empty(10), [0, 2, 5, 1], [1, 2, 3, 3])
+
+    with pytest.raises(ValueError,
+                       match=r"Row 1, .* flat\[5\] .* flat\[4\], .* \(-1\)"):
+        RaggedArray(np.empty(10), [0, 5, 4, 6, 7])
+
+    with pytest.raises(IndexError, match=r"starts\[2\] = -2 < 0"):
+        RaggedArray(np.empty(10), [0, 1, -2, -3, 4], [1, 2, 3, 4, 5])
+
+    with pytest.raises(IndexError, match=r"ends\[3\] = 14 >= len\(flat\) = 10"):
+        RaggedArray(np.empty(10), [0, 1, 2, 3, 4], [1, 2, 3, 14, 5])
