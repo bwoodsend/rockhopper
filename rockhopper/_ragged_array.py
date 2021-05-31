@@ -485,6 +485,12 @@ class RaggedArray(object):
 
         return out
 
+    def tolist(self):
+        """Convert to a list of lists. This is analogous to
+        :meth:`numpy.ndarray.tolist` and is the reciprocal of
+        :meth:`from_nested`."""
+        return sum(map(np.ndarray.tolist, self.to_rectangular_arrays()), [])
+
     @classmethod
     def group_by(cls, data, ids, id_max=None, check_ids=True):
         """Group **data** by **ids**.

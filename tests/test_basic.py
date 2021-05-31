@@ -8,7 +8,7 @@ import collections
 import numpy as np
 import pytest
 
-from rockhopper import RaggedArray
+from rockhopper import RaggedArray, ragged_array
 
 pytestmark = pytest.mark.order(0)
 
@@ -183,3 +183,14 @@ def test_too_big():
     flat = np.empty(1 << 31, np.dtype([]))
     with pytest.raises(NotImplementedError, match="Flat lengths .*"):
         RaggedArray(flat, [])
+
+
+EMPTY = []
+SIMPLE = [[1, 2], [], [3], [4, 5, 6]]
+COMPOUND = [[[1, 2]], [[3, 4], [5, 6]], []]
+
+
+@pytest.mark.parametrize("nested", [EMPTY, SIMPLE, COMPOUND])
+def test_to_list(nested):
+    self = ragged_array(nested)
+    assert self.tolist() == nested
