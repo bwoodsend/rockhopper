@@ -7,6 +7,8 @@ import sys
 import numpy as np
 from cslug import CSlug, ptr, anchor, Header
 
+from rockhopper import RequestMeError
+
 NUMPY_REPR = False
 
 BIG_ENDIAN = sys.byteorder == "big"
@@ -132,10 +134,9 @@ class RaggedArray(object):
             # code to int64_t. Given that it takes at least 2GB of memory to get
             # an array this big, I doubt that this would be useful but I could
             # be wrong...
-            raise NotImplementedError(
-                "Flat lengths >= 2^31  are disabled at compile time to save on "
-                "memory. If you genuinely need arrays this large then raise an "
-                "issue at https://github.com/bwoodsend/rockhopper/issues/new")
+            raise RequestMeError(
+                "Flat lengths >= 2^31  are disabled at compile time to save "
+                "memory at runtime.")
 
         if ends is None:
             bounds = np.asarray(starts, dtype=np.intc, order="C")

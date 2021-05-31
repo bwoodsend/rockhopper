@@ -181,5 +181,5 @@ def test_3d():
                     reason="Irrelevant on 32 bit platforms.")
 def test_too_big():
     flat = np.empty(1 << 31, np.dtype([]))
-    with pytest.raises(NotImplementedError):
+    with pytest.raises(NotImplementedError, match="Flat lengths .*"):
         RaggedArray(flat, [])
