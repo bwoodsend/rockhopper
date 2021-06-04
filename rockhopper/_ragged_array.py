@@ -2,6 +2,7 @@
 """
 """
 
+from typing import Union
 import sys
 
 import numpy as np
@@ -274,10 +275,121 @@ class RaggedArray(object):
         lengths = [len(i) for i in nested]
         return cls.from_lengths(flat, lengths, dtype=dtype)
 
-    def __getitem__(self, item):
+    def __getitem__(self, item) -> Union['RaggedArray', np.ndarray]:
+        index = self.__index_item__(item)
+        if isinstance(index, type(self)):
+            return index
+        return self.flat[index]
+
+    def __setitem__(self, key, value):
+        index = self.__index_item__(key)
+        if isinstance(index, type(self)):
+            raise RequestMeError
+        self.flat[index] = value
+
+    def __index_item__(self, item):
+        """The brain behind __getitem__() and __setitem__().
+
+        To avoid having to write everything twice (for set and get item), this
+        function returns :attr:`flat` indices which may then be used as
+        ``return flat[indices]`` or ``flat[indices] = value``.
+
+        Unfortunately, there are a lot of permutations of possible input types.
+        Some of these permutations return another RaggedArray which should be
+        returned directly by getitem and (once I've implemented vectorisation)
+        wrote to directly by setitem.
+
+        """
+        # 2D indexing i.e. ragged[rows, columns]
+        if isinstance(item, tuple) and len(item) == 2:
+            rows, columns = item
+            if isinstance(columns, slice):
+                if _null_slice(columns):
+                    # Case self[rows, :] should be simplified to ragged[rows]
+                    return self.__index_item__(rows)
+                # Case self[rows, slice]
+                return self.__index_item_number_slice__(rows, columns)
+            # Case self[rows, numerical column numbers]
+            return self.__index_item_any_number__(rows, columns)
+
+        # 3+D indexing.
+        if isinstance(item, tuple) and len(item) > 2:
+            if self.itemshape:
+                # Covert to self[2D index, *other indices].
+                indices = self.__index_item__(item[:2])
+                if isinstance(indices, type(self)):
+                    raise RequestMeError("Returning ragged arrays from >2D "
+                                         "indices is not implemented.")
+                return (indices, *item[2:])
+            raise IndexError(
+                f"Too many indices for ragged array: maximum allowed is 2 but "
+                f"{len(item)} were given.")
+
+        # 1D indexing (ragged[rows]).
         if np.isscalar(item):
-            return self.flat[self.starts[item]:self.ends[item]]
+            # A single row number implies just a regular array output.
+            return slice(self.starts[item], self.ends[item])
+        # Whereas any of slicing, bool masks, arrays of row numbers, ...
+        # return another ragged array.
         return type(self)(self.flat, self.starts[item], self.ends[item])
+
+    def __index_item_any_number__(self, rows, columns):
+        """Indices for self[rows, columns] where **columns** is numeric (not a
+        slice or bool mask)."""
+        rows_is_array_like = not (isinstance(rows, slice) or rows is None)
+        if rows_is_array_like:
+            rows = np.asarray(rows)
+            assert rows.dtype != object
+        columns = np.asarray(columns)
+        assert columns.dtype != object
+
+        starts = self.starts[rows]
+        ends = self.ends[rows]
+        if not rows_is_array_like:
+            columns = columns[np.newaxis]
+        while starts.ndim < columns.ndim:
+            starts = starts[..., np.newaxis]
+            ends = ends[..., np.newaxis]
+
+        lengths = ends - starts
+        out_of_bounds = (columns < -lengths) | (columns >= lengths)
+        for index in _violates(out_of_bounds):
+            rows = np.arange(len(self))[rows]
+            while rows.ndim < columns.ndim:
+                rows = rows[..., np.newaxis]
+
+            rows, columns, lengths = np.broadcast_arrays(rows, columns, lengths)
+            raise IndexError(f"Index {columns[index]} is out of bounds for row "
+                             f"{rows[index]} with size {lengths[index]}")
+        columns = np.where(columns < 0, columns + lengths, columns)
+        return starts + columns
+
+    def __index_item_number_slice__(self, rows, columns: slice):
+        """Indices for self[rows, columns] where **columns** is a slice."""
+        if columns.step not in (1, None):
+            raise RequestMeError(
+                "A stepped columns index ragged[x, ::step] is not implemented "
+                "as it would require strided ragged arrays (which are also not "
+                "implemented).")
+
+        starts = self.starts[rows]
+        ends = self.ends[rows]
+        lengths = ends - starts
+
+        if columns.start is None:
+            new_starts = starts
+        else:
+            new_starts = starts + _wrap_negative(columns.start, lengths)
+            new_starts.clip(starts, ends, out=new_starts)
+
+        if columns.stop is None:
+            new_ends = ends
+        else:
+            new_ends = starts + _wrap_negative(columns.stop, lengths)
+            new_ends.clip(starts, ends, out=new_ends)
+            new_ends.clip(new_starts, out=new_ends)
+
+        return type(self)(self.flat, *np.broadcast_arrays(new_starts, new_ends))
 
     def __len__(self):
         return len(self.starts)
@@ -675,8 +787,20 @@ def sub_enumerate(ids, id_max):
     return counts, sub_ids
 
 
-def _violates(mask):
+def _violates(mask: np.ndarray):
     """Yield the index of the first true element, if any, of the boolean array
     **mask**. Otherwise don't yield at all."""
     if np.any(mask):
-        yield np.argmax(mask)
+        index = np.argmax(mask)
+        yield np.unravel_index(index, mask.shape) if mask.ndim != 1 else index
+
+
+def _null_slice(s: slice):
+    """Return true if a slice does nothing e.g. list[:]"""
+    return s.start is s.step is s.stop is None
+
+
+def _wrap_negative(indices, lengths):
+    """Add **lengths** to **indices** which are negative. Mimics Python's usual
+     list[-1] => list[len(list) - 1] behaviour."""
+    return np.where(indices < 0, indices + lengths, indices)
