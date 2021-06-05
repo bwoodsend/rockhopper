@@ -84,6 +84,21 @@ def test_from_nested(dtype):
         assert self.dtype == dtype
 
 
+def test_structured_from_nested():
+    """Structured NumPy arrays need to be reminded to stay structured and not
+    to simply cast everything to a *fits all* type (usually a string)."""
+    dtype = [("foo", str, 3), ("bar", int)]
+
+    self = ragged_array([
+        [("abc", 3), ("efg", 5)],
+        [("xyz", 9)],
+    ], dtype=dtype)
+
+    assert len(self) == 2
+    assert self.dtype == dtype
+    assert self[0]["foo"].tolist() == ["abc", "efg"]
+
+
 def test_repacked():
     flat = np.random.random(10)
     starts, ends = zip([2, 4], [5, 5], [3, 8], [8, 10])
