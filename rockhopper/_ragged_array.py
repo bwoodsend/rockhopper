@@ -2,7 +2,7 @@
 """
 """
 
-from typing import Union
+from typing import Union, Type, Optional
 import sys
 
 import numpy as np
@@ -21,6 +21,8 @@ slug = CSlug(anchor(
     "src/ragged_array.h",
     "src/endians.c",
 ), headers=endians_header)  # yapf: disable
+
+dtype_like = Union[np.dtype, Type[np.generic]]
 
 
 def prod(iterable):
@@ -261,6 +263,25 @@ class RaggedArray(object):
 
         """
         return type(self)(self.flat.astype(dtype), self.starts, self.ends)
+
+    def byteswap(self, inplace=False):
+        """Swap endian. Analogous to :meth:`numpy.ndarray.byteswap`.
+
+        Args:
+            inplace:
+                If true, modify this array. Otherwise create a new one.
+        Returns:
+            Either this array or a new ragged array with opposite byte order.
+
+        The byteorder of the :attr:`starts` and :attr:`ends` arrays are not
+        touched.
+
+        """
+        if inplace:
+            self.flat.byteswap(inplace=inplace)
+            return self
+        return type(self)(self.flat.byteswap(), self.starts, self.ends,
+                          self.dtype)
 
     @classmethod
     def from_lengths(cls, flat, lengths, dtype=None):

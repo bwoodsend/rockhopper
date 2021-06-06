@@ -229,3 +229,14 @@ def test_check():
 
     with pytest.raises(IndexError, match=r"ends\[3\] = 14 >= len\(flat\) = 10"):
         RaggedArray(np.empty(10), [0, 1, 2, 3, 4], [1, 2, 3, 14, 5])
+
+
+@pytest.mark.parametrize("in_place", [False, True])
+def test_byteswap(in_place):
+    self = RaggedArray.from_nested(SIMPLE, dtype=np.uint16)
+
+    swapped = self.byteswap(inplace=in_place)
+    assert (self is swapped) is in_place
+    assert np.shares_memory(self.flat, swapped.flat) is in_place
+    assert swapped.dtype == np.uint16
+    assert swapped[0].tolist() == [0x0100, 0x0200]
