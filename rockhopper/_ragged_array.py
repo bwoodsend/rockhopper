@@ -526,16 +526,16 @@ class RaggedArray(object):
         return out.data
 
     @classmethod
-    def loads(cls, bin, rows=-1, dtype=None, lengths_dtype=np.intc):
+    def loads(cls, bin, dtype, rows=-1, lengths_dtype=np.intc):
         """Deserialize a ragged array. This is the reciprocal of :meth:`dumps`.
 
         Args:
             bin (bytes):
                 Raw data to unpack.
-            rows (int):
-                Number of rows to parse. Defaults to :py:`-1` for unknown.
             dtype (Union[numpy.dtype, Type[numpy.generic]]):
                 Data type of the row contents in **bin**.
+            rows (int):
+                Number of rows to parse. Defaults to :py:`-1` for unknown.
             lengths_dtype (Union[numpy.dtype, Type[numpy.generic]]):
                 Integer type of the row lengths in **bin**.
         Returns:
@@ -566,7 +566,7 @@ class RaggedArray(object):
                     "data is corrupt or the dtype(s) given are incorrect.")
 
             # Run again with known number of `rows`.
-            return cls.loads(bin, rows, dtype, lengths_dtype)
+            return cls.loads(bin, dtype, rows, lengths_dtype)
 
         free = len(bin) - rows * lengths_dtype.itemsize
         items = free // dtype.itemsize

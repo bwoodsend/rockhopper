@@ -87,7 +87,7 @@ def test_3d():
 
 @pytest.mark.parametrize("lengths_dtype", [np.uint8, np.uint16, np.uint32])
 def test_empty(lengths_dtype):
-    self = RaggedArray.loads(b"", lengths_dtype=lengths_dtype)
+    self = RaggedArray.loads(b"", None, lengths_dtype=lengths_dtype)
     assert len(self) == 0
     assert len(self.flat) == 0
 
@@ -100,19 +100,19 @@ def test_corruption():
 
     # End halfway through the 1st length.
     with pytest.raises(ValueError, match="through a row"):
-        RaggedArray.loads(bin[:1], lengths_dtype=np.uint16)
+        RaggedArray.loads(bin[:1], np.uint16, lengths_dtype=np.uint16)
     with pytest.raises(ValueError, match="leaves -1 bytes for the flat data"):
-        RaggedArray.loads(bin[:1], lengths_dtype=np.uint16, rows=1)
+        RaggedArray.loads(bin[:1], np.uint16, lengths_dtype=np.uint16, rows=1)
 
-    assert len(RaggedArray.loads(bin[:1], rows=0)) == 0
+    assert len(RaggedArray.loads(bin[:1], None, rows=0)) == 0
 
     # End after the 1st row length but before the row data.
     with pytest.raises(ValueError, match="through a row"):
-        RaggedArray.loads(bin[:2], lengths_dtype=np.uint16)
+        RaggedArray.loads(bin[:2], np.uint16, lengths_dtype=np.uint16)
 
     # Again but with rows specified.
     with pytest.raises(ValueError, match="Only 0 out of .* 1 rows were read."):
-        RaggedArray.loads(bin[:2], lengths_dtype=np.uint16, rows=1)
+        RaggedArray.loads(bin[:2], np.uint16, lengths_dtype=np.uint16, rows=1)
 
     # A full row of binary data - should work.
     RaggedArray.loads(bin[:6], lengths_dtype=np.uint16, dtype=np.uint16)
