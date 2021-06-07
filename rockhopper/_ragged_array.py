@@ -293,7 +293,10 @@ class RaggedArray(object):
     @classmethod
     def from_nested(cls, nested, dtype=None):
         _nested = [np.asarray(i, dtype=dtype) for i in nested if len(i)]
-        flat = np.concatenate(_nested or [[]], dtype=dtype)
+        if _nested:
+            flat = np.concatenate(_nested)
+        else:
+            flat = np.empty(0, dtype=dtype)
         lengths = [len(i) for i in nested]
         return cls.from_lengths(flat, lengths, dtype=dtype)
 
