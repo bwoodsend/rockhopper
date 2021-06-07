@@ -60,6 +60,16 @@ def test_dump_load(dtype, byteorder):
     assert np.array_equal(self.flat, parsed.flat)
 
 
+def test_dump_byteorder():
+    self = RaggedArray.from_nested([[0x0109, 0x0208, 0x0307]], dtype=np.uint16)
+
+    bin = list(self.astype(self.dtype.newbyteorder(">")).dumps(lengths_dtype=np.uint8))
+    assert bin == [3, 1, 9, 2, 8, 3, 7]
+
+    bin = list(self.astype(self.dtype.newbyteorder("<")).dumps(lengths_dtype=np.uint8))
+    assert bin == [3, 9, 1, 8, 2, 7, 3]
+
+
 def test_3d():
     self = RaggedArray.from_nested([
         [[0, 1, 2], [3, 4, 5]],
