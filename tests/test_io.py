@@ -54,10 +54,11 @@ def test_dump_load(dtype, byteorder):
         RaggedArray.loads(bin.tobytes() + b"\x01", dtype=self.dtype,
                           ldtype=dtype)
 
-    parsed = RaggedArray.loads(bin, dtype=self.dtype, ldtype=dtype)
+    parsed, consumed = RaggedArray.loads(bin, dtype=self.dtype, ldtype=dtype)
     assert np.array_equal(self.starts, parsed.starts)
     assert np.array_equal(self.ends, parsed.ends)
     assert np.array_equal(self.flat, parsed.flat)
+    assert consumed == len(bin)
 
 
 def test_dump_byteorder():
@@ -89,7 +90,7 @@ def test_3d():
 
     assert np.frombuffer(self.dumps(), np.intc).tolist() == target
 
-    parsed = RaggedArray.loads(self.dumps(), dtype=np.dtype(np.intc) * 3)
+    parsed, _ = RaggedArray.loads(self.dumps(), dtype=np.dtype(np.intc) * 3)
     assert np.array_equal(self.starts, parsed.starts)
     assert np.array_equal(self.ends, parsed.ends)
     assert np.array_equal(self.flat, parsed.flat)
@@ -97,9 +98,10 @@ def test_3d():
 
 @pytest.mark.parametrize("ldtype", [np.uint8, np.uint16, np.uint32])
 def test_empty(ldtype):
-    self = RaggedArray.loads(b"", None, ldtype=ldtype)
+    self, consumed = RaggedArray.loads(b"", None, ldtype=ldtype)
     assert len(self) == 0
     assert len(self.flat) == 0
+    assert consumed == 0
 
 
 def test_corruption():
@@ -114,7 +116,7 @@ def test_corruption():
     with pytest.raises(ValueError, match="leaves -1 bytes for the flat data"):
         RaggedArray.loads(bin[:1], np.uint16, ldtype=np.uint16, rows=1)
 
-    assert len(RaggedArray.loads(bin[:1], None, rows=0)) == 0
+    assert len(RaggedArray.loads(bin[:1], None, rows=0)[0]) == 0
 
     # End after the 1st row length but before the row data.
     with pytest.raises(ValueError, match="through a row"):
@@ -132,8 +134,9 @@ def test_corruption():
         RaggedArray.loads(bin[:6], ldtype=np.uint16, dtype=np.uint16, rows=2)
 
     # Be sure the empty last row doesn't get lost.
-    assert len(RaggedArray.loads(bin, ldtype=np.uint16,
-                                 dtype=np.uint16)) == 3
+    ragged, consumed = RaggedArray.loads(bin, ldtype=np.uint16, dtype=np.uint16)
+    assert len(ragged) == 3
+    assert consumed == len(bin)
     RaggedArray.loads(bin, ldtype=np.uint16, dtype=np.uint16, rows=3)
 
 

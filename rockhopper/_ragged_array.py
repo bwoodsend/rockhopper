@@ -2,7 +2,8 @@
 """
 """
 
-from typing import Union, Type, Optional
+from typing import Union, Type, Tuple
+import ctypes
 import sys
 
 import numpy as np
@@ -524,7 +525,8 @@ class RaggedArray(object):
         return out.data
 
     @classmethod
-    def loads(cls, bin, dtype, rows=-1, ldtype=np.intc):
+    def loads(cls, bin, dtype, rows=-1,
+              ldtype=np.intc) -> Tuple['RaggedArray', int]:
         """Deserialize a ragged array. This is the reciprocal of :meth:`dumps`.
 
         Args:
@@ -538,7 +540,9 @@ class RaggedArray(object):
                 Integer type of the row lengths in **bin**.
         Returns:
             RaggedArray:
-
+                The deserialised ragged array.
+            int:
+                The number of bytes from **bin** consumed.
         Raises:
             ValueError:
                 If **bin** ends prematurely or in the middle of a row. This is
@@ -575,9 +579,11 @@ class RaggedArray(object):
         self = cls(np.empty(items, dtype=dtype), np.empty(rows + 1, np.intc),
                    check=False)
 
-        _rows = slug.dll.load(self._c_struct._ptr, ptr(bin), len(bin), rows,
-                              _2_power(ldtype),
-                              _big_endian(ldtype), dtype.itemsize)
+        bin_consumed = ctypes.c_size_t(0)
+
+        _rows = slug.dll.load(self._c_struct._ptr, ptr(bin), len(bin),
+                              ctypes.byref(bin_consumed), rows,
+                              _2_power(ldtype), _big_endian(ldtype))
         if _rows < rows:
             raise ValueError(
                 f"Raw `bin` data ended too soon. "
@@ -585,7 +591,7 @@ class RaggedArray(object):
                 f"Either this data is corrupt or the dtype(s) given are "
                 "incorrect.")
 
-        return self
+        return self, bin_consumed.value
 
     def _rectangular_slice(self, start, end):
         """Slice ``self`` but convert the output to a regular rectangular array.

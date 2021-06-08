@@ -75,13 +75,15 @@ int count_rows(void * raw, int raw_length, int length_power, int big_endian,
 }
 
 
-uint64_t load(RaggedArray * self, void * raw, uint64_t raw_length, int rows,
-              int length_power, int big_endian) {
+uint64_t load(RaggedArray * self, void * raw, uint64_t raw_length,
+              size_t * raw_consumed, int rows, int length_power,
+              int big_endian) {
   /* The workhorse behind ``RaggedArray.loads()``. */
 
   IntRead read = choose_int_read(length_power, big_endian);
 
   int start = self -> starts[0] = 0;
+  void * raw_start = raw;
   void * raw_end = raw + raw_length;
 
   // Parse the array a row at a time:
@@ -112,6 +114,9 @@ uint64_t load(RaggedArray * self, void * raw, uint64_t raw_length, int rows,
     self -> ends[row] = start;
 
   }
+  // Record how many bytes of input have been used.
+  *raw_consumed = raw - raw_start;
+
   return rows;
 }
 
