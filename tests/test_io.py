@@ -38,7 +38,7 @@ def test_dump_load(dtype, byteorder):
     _byteorder = "big" if _big_endian(dtype) else "little"
     _bin_int = lambda x: int.to_bytes(x, dtype.itemsize, _byteorder)
 
-    bin = self.dumps(lengths_dtype=dtype)
+    bin = self.dumps(ldtype=dtype)
     target = (_bin_int(2), flat[0:2].tobytes(),
               _bin_int(3), flat[2:5].tobytes(),
               _bin_int(0), b"")  # yapf: disable
@@ -52,9 +52,9 @@ def test_dump_load(dtype, byteorder):
 
     with pytest.raises(ValueError):
         RaggedArray.loads(bin.tobytes() + b"\x01", dtype=self.dtype,
-                          lengths_dtype=dtype)
+                          ldtype=dtype)
 
-    parsed = RaggedArray.loads(bin, dtype=self.dtype, lengths_dtype=dtype)
+    parsed = RaggedArray.loads(bin, dtype=self.dtype, ldtype=dtype)
     assert np.array_equal(self.starts, parsed.starts)
     assert np.array_equal(self.ends, parsed.ends)
     assert np.array_equal(self.flat, parsed.flat)
@@ -63,10 +63,10 @@ def test_dump_load(dtype, byteorder):
 def test_dump_byteorder():
     self = RaggedArray.from_nested([[0x0109, 0x0208, 0x0307]], dtype=np.uint16)
 
-    bin = list(self.astype(self.dtype.newbyteorder(">")).dumps(lengths_dtype=np.uint8))
+    bin = list(self.astype(self.dtype.newbyteorder(">")).dumps(ldtype=np.uint8))
     assert bin == [3, 1, 9, 2, 8, 3, 7]
 
-    bin = list(self.astype(self.dtype.newbyteorder("<")).dumps(lengths_dtype=np.uint8))
+    bin = list(self.astype(self.dtype.newbyteorder("<")).dumps(ldtype=np.uint8))
     assert bin == [3, 9, 1, 8, 2, 7, 3]
 
 
@@ -95,9 +95,9 @@ def test_3d():
     assert np.array_equal(self.flat, parsed.flat)
 
 
-@pytest.mark.parametrize("lengths_dtype", [np.uint8, np.uint16, np.uint32])
-def test_empty(lengths_dtype):
-    self = RaggedArray.loads(b"", None, lengths_dtype=lengths_dtype)
+@pytest.mark.parametrize("ldtype", [np.uint8, np.uint16, np.uint32])
+def test_empty(ldtype):
+    self = RaggedArray.loads(b"", None, ldtype=ldtype)
     assert len(self) == 0
     assert len(self.flat) == 0
 
@@ -110,32 +110,31 @@ def test_corruption():
 
     # End halfway through the 1st length.
     with pytest.raises(ValueError, match="through a row"):
-        RaggedArray.loads(bin[:1], np.uint16, lengths_dtype=np.uint16)
+        RaggedArray.loads(bin[:1], np.uint16, ldtype=np.uint16)
     with pytest.raises(ValueError, match="leaves -1 bytes for the flat data"):
-        RaggedArray.loads(bin[:1], np.uint16, lengths_dtype=np.uint16, rows=1)
+        RaggedArray.loads(bin[:1], np.uint16, ldtype=np.uint16, rows=1)
 
     assert len(RaggedArray.loads(bin[:1], None, rows=0)) == 0
 
     # End after the 1st row length but before the row data.
     with pytest.raises(ValueError, match="through a row"):
-        RaggedArray.loads(bin[:2], np.uint16, lengths_dtype=np.uint16)
+        RaggedArray.loads(bin[:2], np.uint16, ldtype=np.uint16)
 
     # Again but with rows specified.
     with pytest.raises(ValueError, match="Only 0 out of .* 1 rows were read."):
-        RaggedArray.loads(bin[:2], np.uint16, lengths_dtype=np.uint16, rows=1)
+        RaggedArray.loads(bin[:2], np.uint16, ldtype=np.uint16, rows=1)
 
     # A full row of binary data - should work.
-    RaggedArray.loads(bin[:6], lengths_dtype=np.uint16, dtype=np.uint16)
+    RaggedArray.loads(bin[:6], ldtype=np.uint16, dtype=np.uint16)
 
     # But not of the user expects more rows.
     with pytest.raises(ValueError, match="Only 1 out of .* 2 rows were read."):
-        RaggedArray.loads(bin[:6], lengths_dtype=np.uint16, dtype=np.uint16,
-                          rows=2)
+        RaggedArray.loads(bin[:6], ldtype=np.uint16, dtype=np.uint16, rows=2)
 
     # Be sure the empty last row doesn't get lost.
-    assert len(RaggedArray.loads(bin, lengths_dtype=np.uint16,
+    assert len(RaggedArray.loads(bin, ldtype=np.uint16,
                                  dtype=np.uint16)) == 3
-    RaggedArray.loads(bin, lengths_dtype=np.uint16, dtype=np.uint16, rows=3)
+    RaggedArray.loads(bin, ldtype=np.uint16, dtype=np.uint16, rows=3)
 
 
 def test_overflow():
@@ -144,7 +143,7 @@ def test_overflow():
     self = RaggedArray.from_lengths(np.arange(1000), [0, 150, 255, 256, 300])
     with pytest.raises(OverflowError,
                        match="Row 3 with length 256 is .* an uint8 integer."):
-        self.dumps(lengths_dtype=np.uint8)
+        self.dumps(ldtype=np.uint8)
 
     self.dumps(np.int16)
 

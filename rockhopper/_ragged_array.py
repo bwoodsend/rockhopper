@@ -480,11 +480,11 @@ class RaggedArray(object):
         slug.dll.repack(self._c_struct._ptr, new._c_struct._ptr)
         return new
 
-    def dumps(self, lengths_dtype=np.intc):
+    def dumps(self, ldtype=np.intc):
         """Serialise into a :class:`memoryview`.
 
         Args:
-            lengths_dtype (Union[numpy.dtype, Type[numpy.generic]]):
+            ldtype (Union[numpy.dtype, Type[numpy.generic]]):
                 Integer type.
 
         Returns:
@@ -497,11 +497,11 @@ class RaggedArray(object):
             b"".join((len(row).tobytes() + row.tobytes() for row in ragged_array))
 
         The integer types of the row lengths can be controlled by the
-        **lengths_dtype** parameter. To change the type or byteorder of the data
+        **ldtype** parameter. To change the type or byteorder of the data
         itself, cast to that type with :meth:`astype` then call this function.
 
         """
-        lengths_dtype = np.dtype(lengths_dtype)
+        ldtype = np.dtype(ldtype)
 
         # --- Work out how many bytes the output will need. ---
 
@@ -509,7 +509,7 @@ class RaggedArray(object):
         # a safe shortcut unless `self.repacked()` has been called 1st.
         length = (self.ends - self.starts).sum() * self.itemsize
         # And the lengths of the lengths...
-        length += len(self) * lengths_dtype.itemsize
+        length += len(self) * ldtype.itemsize
 
         # Allocate `length` bytes to write to. `numpy.empty()` seems to be one
         # of the only ways to create a lump of memory in Python without wasting
@@ -517,16 +517,15 @@ class RaggedArray(object):
         out = np.empty(length, dtype=np.byte)
 
         failed_row = slug.dll.dump(self._c_struct._ptr, ptr(out),
-                                   _2_power(lengths_dtype),
-                                   _big_endian(lengths_dtype))
+                                   _2_power(ldtype), _big_endian(ldtype))
         if failed_row != -1:
             raise OverflowError(
                 f"Row {failed_row} with length {len(self[failed_row])} "
-                f"is too long to write with an {lengths_dtype.name} integer.")
+                f"is too long to write with an {ldtype.name} integer.")
         return out.data
 
     @classmethod
-    def loads(cls, bin, dtype, rows=-1, lengths_dtype=np.intc):
+    def loads(cls, bin, dtype, rows=-1, ldtype=np.intc):
         """Deserialize a ragged array. This is the reciprocal of :meth:`dumps`.
 
         Args:
@@ -536,7 +535,7 @@ class RaggedArray(object):
                 Data type of the row contents in **bin**.
             rows (int):
                 Number of rows to parse. Defaults to :py:`-1` for unknown.
-            lengths_dtype (Union[numpy.dtype, Type[numpy.generic]]):
+            ldtype (Union[numpy.dtype, Type[numpy.generic]]):
                 Integer type of the row lengths in **bin**.
         Returns:
             RaggedArray:
@@ -549,16 +548,14 @@ class RaggedArray(object):
 
         """
         dtype = np.dtype(dtype)
-        lengths_dtype = np.dtype(lengths_dtype)
+        ldtype = np.dtype(ldtype)
 
         # We need to know how many rows there will be in this new ragged array
         # before creating and populating it.
         if rows == -1:
             # If it's not already known then it has to be counted.
-            rows = slug.dll.count_rows(ptr(bin), len(bin),
-                                       _2_power(lengths_dtype),
-                                       _big_endian(lengths_dtype),
-                                       dtype.itemsize)
+            rows = slug.dll.count_rows(ptr(bin), len(bin), _2_power(ldtype),
+                                       _big_endian(ldtype), dtype.itemsize)
             if rows == -1:
                 # `count_rows()` returns -1 on error.
                 raise ValueError(
@@ -566,22 +563,22 @@ class RaggedArray(object):
                     "data is corrupt or the dtype(s) given are incorrect.")
 
             # Run again with known number of `rows`.
-            return cls.loads(bin, dtype, rows, lengths_dtype)
+            return cls.loads(bin, dtype, rows, ldtype)
 
-        free = len(bin) - rows * lengths_dtype.itemsize
+        free = len(bin) - rows * ldtype.itemsize
         items = free // dtype.itemsize
         if items < 0:
             raise ValueError(
                 f"With `bin` of length {len(bin)}, {rows} rows of "
-                f"{lengths_dtype.itemsize} byte lengths leaves {free} bytes "
+                f"{ldtype.itemsize} byte lengths leaves {free} bytes "
                 f"for the flat data. Perhaps your data types are wrong?")
 
         self = cls(np.empty(items, dtype=dtype), np.empty(rows + 1, np.intc),
                    check=False)
 
         _rows = slug.dll.load(self._c_struct._ptr, ptr(bin), len(bin), rows,
-                              _2_power(lengths_dtype),
-                              _big_endian(lengths_dtype), dtype.itemsize)
+                              _2_power(ldtype),
+                              _big_endian(ldtype), dtype.itemsize)
         if _rows < rows:
             raise ValueError(
                 f"Raw `bin` data ended too soon. "
