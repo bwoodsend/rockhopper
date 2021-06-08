@@ -485,11 +485,10 @@ class RaggedArray(object):
 
         Args:
             ldtype (Union[numpy.dtype, Type[numpy.generic]]):
-                Integer type.
-
+                Integer type for the row lengths.
         Returns:
             memoryview:
-                Binary blob.
+                A bytes-like binary blob.
 
         The binary format is an undelimited sequence of ``(len(row), row)``
         pairs. A pure Python approximation would be::

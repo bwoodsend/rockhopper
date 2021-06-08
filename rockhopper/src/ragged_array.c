@@ -105,8 +105,8 @@ uint64_t load(RaggedArray * self, void * raw, uint64_t raw_length, int rows,
            self -> itemsize * length);
     raw += length * self -> itemsize;
 
-    // Set mark the end of this row. This is also writing the start of the next
-    // row because `self -> ends` is the same arrays as`self -> starts` but
+    // Mark the end of this row. This also sets the start of the next
+    // row because `self -> ends` is the same array as`self -> starts` but
     // shifted along one item.
     start += length;
     self -> ends[row] = start;
