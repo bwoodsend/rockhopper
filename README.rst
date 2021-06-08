@@ -104,7 +104,9 @@ To install use the following steps:
 
 Pre-built binary wheels (i.e. easy to install) are shipped for:
 
-* All architectures of glibc based Linux supported by the `many linux project`_
+* Linux distributions based on glibc whose architecture NumPy also ships
+  prebuilt wheels for (which can be seen `here
+  <https://pypi.org/project/numpy/#files>`_)
 * Windows 64 and 32 bit
 * macOS >=10.6 on ``x86_86`` or ``arm64``
 
