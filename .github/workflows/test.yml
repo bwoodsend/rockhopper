@@ -65,3 +65,10 @@ jobs:
         run: pyinstaller frozen-pytest.spec
       - working-directory: tests/PyInstaller_
         run: ./dist/frozen-pytest/frozen-pytest ../..
+
+      # Test old versions of dependencies. Should these fail, re-pin to working
+      # versions both here and in the pyproject.toml
+      - run: |
+          pip install numpy==1.16.0 cslug==0.1.0 &&
+          pytest
+        if: ${{ matrix.python-version == 3.6 }}

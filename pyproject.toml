@@ -4,5 +4,5 @@ requires = [
   "wheel",
   "toml",
   "cslug",
-  "numpy",
+  "numpy>=1.16.0",
 ]
