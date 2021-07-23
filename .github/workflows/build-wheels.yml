@@ -24,18 +24,18 @@ jobs:
           python-version: 3.9
           architecture: ${{ matrix.architecture }}
 
-      - name: Set up GCC
-        if: ${{ matrix.architecture == 'x86' }}
-        uses: egor-tensin/setup-mingw@v2
+      - name: Install clang
+        if: startsWith(matrix.os, 'windows')
+        uses: bwoodsend/setup-winlibs-action@v1
         with:
-          platform: x86
+          architecture: ${{ matrix.architecture }}
+          with_clang: true
 
-      - if: ${{ matrix.architecture == 'x86' }}
-        run: echo CC=cc >> $GITHUB_ENV
-      - if: startsWith(matrix.os, 'ubuntu')
-        run: echo CC=clang >> $GITHUB_ENV
+      # Compile with clang by default which produces faster binaries.
+      - run: echo CC=clang >> $GITHUB_ENV
+      # macOS needs special compiler flags to enable 'universal2' binaries.
       - if: startsWith(matrix.os, 'macos')
-        run: CC_FLAGS='-arch x86_64 -arch arm64' >> $GITHUB_ENV
+        run: echo CC_FLAGS='-arch x86_64 -arch arm64' >> $GITHUB_ENV
 
       # Check the compiler. Don't fail if CC isn't set.
       - run: ${CC:-echo} -v
@@ -70,8 +70,7 @@ jobs:
           pip install "$(echo dist/*.whl)[test]" &&
           rm -rf rockhopper &&
           pytest --no-cov
-        shell:
-          bash
+        shell: bash
 
   Whacky-Linux:
     runs-on: ubuntu-latest
@@ -81,7 +80,7 @@ jobs:
           manylinux1_x86_64,
           manylinux1_i686,
           manylinux2014_aarch64,
-          # Support these if/when NumPy provide wheels for them.
+          # Support these when NumPy provides wheels for them.
           # manylinux2014_ppc64le,
           # manylinux2014_s390x,
         ]
