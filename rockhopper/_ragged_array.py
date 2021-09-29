@@ -687,6 +687,10 @@ class RaggedArray(object):
             id_max (int):
                 :py:`np.max(ids) + 1`. If already known, providing this value
                 prevents it from being redundantly recalculated.
+            check_ids (bool):
+                If true, verify that each ID in **ids** is in bounds
+                (:py:`0 <= ID < id_max`). Disable with caution - an uncaught
+                out of bounds ID can lead to a seg-fault.
 
         Returns:
             RaggedArray:
