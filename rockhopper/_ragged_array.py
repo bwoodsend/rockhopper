@@ -774,7 +774,7 @@ def _2_power(dtype):
 
 
 def _big_endian(dtype):
-    """Is **dtype** bit endian?"""
+    """Is **dtype** big endian?"""
     byteorder = np.dtype(dtype).byteorder
     if byteorder == "<":
         return False
