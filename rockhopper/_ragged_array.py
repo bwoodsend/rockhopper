@@ -700,7 +700,8 @@ class RaggedArray(object):
 
         """
         # Just run ``groups_by()`` but with only one ``datas``.
-        return next(cls.groups_by(ids, data, id_max=id_max))
+        return next(cls.groups_by(ids, data, id_max=id_max,
+                                  check_ids=check_ids))
 
     @classmethod
     def groups_by(cls, ids, *datas, id_max=None, check_ids=True):
