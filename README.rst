@@ -4,7 +4,7 @@ rockhopper
 
 .. image::
     https://img.shields.io/badge/
-    Python-%203.6%20%7C%203.7%20%7C%203.8%20%7C%203.9%20%7C%20PyInstaller-blue.svg
+    Python-%203.6%20%7C%203.7%20%7C%203.8%20%7C%203.9%20%7C%203.10%20%7C%20PyInstaller-blue.svg
 
 A *Ragged Array* class: 2D NumPy arrays containing rows of mismatching lengths.
 
