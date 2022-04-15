@@ -117,3 +117,44 @@ jobs:
             pip install /dist/rockhopper*manylinux*.whl &&
             pytest /tests
           "
+
+  musl:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        base: [
+          musllinux_1_1_x86_64,
+          musllinux_1_1_i686,
+          musllinux_1_1_aarch64,
+        ]
+    steps:
+
+      - uses: actions/checkout@v2
+      - uses: crazy-max/ghaction-docker-buildx@v3.3.0
+
+      - name: Build docker image
+        run: |
+          docker build -t foo --build-arg BASE=${{ matrix.base }} -f musl.dockerfile .
+
+      - name: Build wheel
+        run: |
+          docker run -v "$PWD/dist:/io/wheelhouse" foo bash -c '
+            pip wheel --no-deps --no-build-isolation /io
+            auditwheel repair rockhopper*.whl
+          '
+
+      - name: Upload wheel(s) as build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: wheels
+          path: dist/*.whl
+
+      - name: Install and test wheel
+        run: |
+          docker run -v "$PWD/dist:/io/wheelhouse" foo bash -c '
+            python3 -m pip install -U pip
+            pip install wheelhouse/rockhopper*.whl
+            rm -rf rockhopper pytest.ini
+            pip install pytest-order
+            pytest
+          '
