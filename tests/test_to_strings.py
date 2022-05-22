@@ -73,3 +73,8 @@ RaggedArray.from_nested([
     [4094],
     [4095],
 ])"""
+
+
+def test_short_repr():
+    self = ragged_array([])
+    assert repr(self) == "RaggedArray.from_nested([])"

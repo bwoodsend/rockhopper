@@ -423,7 +423,8 @@ class RaggedArray(object):
     def __iter__(self):
         return (self[i] for i in range(len(self)))
 
-    def _to_string(self, prefix, separator):
+    def _to_string(self, prefix, separator, row_separator,
+                   trailing_separator=False):
         """Convert to :class:`str`. A loose ragged equivalent of
         :func:`numpy.array2string()`.
 
@@ -433,12 +434,14 @@ class RaggedArray(object):
                 :func:`numpy.array2string()`.
             separator (str):
                 The deliminator to be put between elements.
-
+            row_separator (str):
+                 The delimitor to be put between rows.
+            trailing_separator (bool):
+                 If true, include a redundant separator after the last row.
         Returns:
             str: Something stringy.
 
         """
-        # TODO: Maybe expand and make this method public.
         _str = lambda x: np.array2string(x, prefix=prefix, separator=separator)
 
         if len(self) > np.get_printoptions()['threshold']:
@@ -452,12 +455,17 @@ class RaggedArray(object):
         else:
             rows = [_str(i) for i in self]
 
+        if not len(self):
+            return ""
+
         # A downside of doing everything per row is that each row gets formatted
         # differently. NumPy don't expose any of their fancy dragon4 algorithm
         # functionality for choosing format options so I don't see any practical
         # way of changing this.
 
-        return (separator.rstrip() + "\n" + " " * len(prefix)).join(rows)
+        if not trailing_separator:
+            return (row_separator + " " * len(prefix)).join(rows)
+        return (" " * len(prefix)).join(i + row_separator for i in rows)
 
     def __repr__(self):
         prefix = type(self).__name__ + ".from_nested("
@@ -465,13 +473,15 @@ class RaggedArray(object):
         # I might make this a proper option in future.
         if NUMPY_REPR:  # pragma: no cover
             # Old school NumPy style formatting.
-            return prefix + "[" + self._to_string(prefix + "[", ", ") + "])"
+            return f'{prefix}[' + self._to_string(prefix + "[", ", ", ",\n")+ '])'
 
         # More trendy trailing comma formatting for `black` fanatics.
-        return prefix + "[\n    " + self._to_string("    ", ", ") + ",\n])"
+        line_break = "\n    " if len(self) else ""
+        body = self._to_string("    ", ", ", ",\n", True)
+        return f"{prefix}[{line_break}{body}])"
 
     def __str__(self):
-        return "[" + self._to_string(" ", " ") + "]"
+        return "[" + self._to_string(" ", " ", "\n") + "]"
 
     def repacked(self):
         length = (self.ends - self.starts).sum()
