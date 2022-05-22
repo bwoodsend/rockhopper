@@ -34,7 +34,7 @@ setup(
     extras_require={
         "test": [
             'pytest>=3', 'pytest-order', 'coverage', 'pytest-cov',
-            'coverage-conditional-plugin'
+            'coverage-conditional-plugin', 'hypothesis'
         ]
     },
     license="MIT license",

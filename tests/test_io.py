@@ -7,6 +7,7 @@ import pickle
 import numpy as np
 import pytest
 from cslug import ptr
+from hypothesis import given, strategies, settings, Verbosity, example
 
 from rockhopper import RaggedArray
 from rockhopper._ragged_array import _2_power, _big_endian
@@ -59,6 +60,49 @@ def test_dump_load(dtype, byteorder):
     assert np.array_equal(self.ends, parsed.ends)
     assert np.array_equal(self.flat, parsed.flat)
     assert consumed == len(bin)
+
+
+int_types = [
+    np.uint8, np.uint16, np.uint32, np.uint64,
+    np.int8, np.int16, np.int32, np.int64,
+]
+blob = bytes(range(256)) + bytes(range(256))[::-1]
+
+
+@pytest.mark.parametrize("dtype", int_types)
+@pytest.mark.parametrize("ldtype", int_types)
+def test_loads_pointer_overflow_guard(dtype, ldtype):
+    """Test that the check for pointer overflowing caused by reading a huge row
+    length works."""
+    for i in range(-30, len(blob)):
+        try:
+            RaggedArray.loads(blob[i: i+30], dtype=dtype, ldtype=ldtype)
+        except ValueError:
+            pass
+
+
+@pytest.mark.parametrize("dtype", int_types)
+@pytest.mark.parametrize("ldtype", int_types)
+def test_fuzz_loads(dtype, ldtype):
+    """Scan for possible segfaults.
+
+    All invalid inputs must lead to a ValueError rather than a seg-fault or
+    RaggedArray.loads() could be tricked into reading arbitrary memory addresses
+    by a maliciously constructed invalid data file.
+
+    """
+    @given(strategies.binary())
+    @example(b'\xc0\\\\\xb0\x93\x91\xff\xffpEfe\x167\xee')
+    def fuzz(x):
+        print(x)
+        try:
+            self, _ = RaggedArray.loads(x, dtype=dtype, ldtype=ldtype)
+        except ValueError:
+            pass
+        else:
+            assert self.dumps(ldtype=ldtype).tobytes() == x
+
+    fuzz()
 
 
 def test_dump_byteorder():

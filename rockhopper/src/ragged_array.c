@@ -59,8 +59,9 @@ int count_rows(void * raw, int raw_length, int length_power, int big_endian,
 
   int rows = 0;
 
+  void * start = raw;
   void * end = raw + raw_length;
-  while (raw <= end - (1 << length_power)) {
+  while (raw <= end - (1 << length_power) && raw >= start) {
     uint64_t length = read(raw);
     raw += (1 << length_power);
     raw += length * itemsize;
