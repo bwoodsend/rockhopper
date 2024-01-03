@@ -9,49 +9,25 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        python-version: [3.9, 3.6, 3.7, 3.8, '3.10']
-        architecture: ['x64']
+        python-version: [3.8, '3.10', 3.12]
         include:
-          - os: macos-10.15
-            python-version: 3.9
-            architecture: 'x64'
-          - os: macos-11.0
-            python-version: 3.9
-            architecture: 'x64'
-          - name: Windows
-            os: windows-latest
-            python-version: 3.9
-            architecture: 'x64'
-
+          - os: ubuntu-20.04
+            python-version: 3.6
+          - os: macos-latest
+            python-version: 3.x
+          - os: windows-latest
+            python-version: 3.x
       fail-fast: false
-
     runs-on: ${{ matrix.os }}
 
     steps:
-
-      - uses: actions/checkout@v2
-      - run: |
-          git fetch --prune --unshallow
-
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-          architecture: ${{ matrix.architecture }}
 
-      - name: Cache pip cached wheels
-        uses: actions/cache@v2
-        env:
-          cache-name: cache-node-modules
-        with:
-          path: pip-cache
-          key: restore-key
-          restore-keys: restore-key
-
-      - name: Install
-        run: |
-          pip install --cache-dir=pip-cache wheel toml
-          pip install --cache-dir=pip-cache -e .[test]
+      - run: pip install wheel toml setuptools
+      - run: pip install -e .[test]
 
       - name: Compile
         run: python setup.py build
@@ -60,6 +36,7 @@ jobs:
         run: pytest
 
       # Test PyInstaller.
+      - run: pip uninstall -y rockhopper && pip install .
       - run: pip install pyinstaller
       - working-directory: tests/PyInstaller_
         run: pyinstaller frozen-pytest.spec
