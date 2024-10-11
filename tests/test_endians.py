@@ -5,8 +5,6 @@ import pytest
 
 from rockhopper._ragged_array import slug
 
-pytestmark = pytest.mark.order(1)
-
 
 def log_range(start, stop, base):
     while start < stop:

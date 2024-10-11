@@ -31,7 +31,7 @@ setup(
     entry_points={"pyinstaller40": "hook-dirs=rockhopper:_PyInstaller_hook"},
     extras_require={
         "test": [
-            'pytest>=3', 'pytest-order', 'coverage', 'pytest-cov',
+            'pytest>=3', 'pytest-ordered', 'coverage', 'pytest-cov',
             'coverage-conditional-plugin', 'hypothesis'
         ]
     },

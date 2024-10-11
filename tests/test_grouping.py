@@ -4,8 +4,6 @@ import pytest
 from rockhopper import RaggedArray
 from rockhopper._ragged_array import sub_enumerate
 
-pytestmark = pytest.mark.order(4)
-
 
 @pytest.mark.parametrize("n", [10, 1, 0, 200])
 @pytest.mark.parametrize("id_max", [10, 1, 200])

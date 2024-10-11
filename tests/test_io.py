@@ -8,8 +8,6 @@ from hypothesis import given, strategies, example
 from rockhopper import RaggedArray
 from rockhopper._ragged_array import _2_power, _big_endian
 
-pytestmark = pytest.mark.order(3)
-
 
 def test_2_power():
     assert _2_power(np.int8) == 0

@@ -9,8 +9,6 @@ import pytest
 
 from rockhopper import RaggedArray, ragged_array
 
-pytestmark = pytest.mark.order(2)
-
 REPRs = [
     """\
 RaggedArray.from_nested([
