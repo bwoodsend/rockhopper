@@ -1,8 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-"""
-
-
 class RequestMeError(NotImplementedError):
     """Raised for features which I'd like to add but haven't."""
 

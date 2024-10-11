@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Tests for str() and repr() on RaggedArrays.
 """

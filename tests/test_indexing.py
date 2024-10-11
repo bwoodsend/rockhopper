@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Test all the various getitem/setitem flavours.
 """
