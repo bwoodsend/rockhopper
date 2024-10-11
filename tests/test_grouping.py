@@ -1,6 +1,5 @@
 import numpy as np
 import pytest
-from cslug import ptr
 
 from rockhopper import RaggedArray
 from rockhopper._ragged_array import sub_enumerate

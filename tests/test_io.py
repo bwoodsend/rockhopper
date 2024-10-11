@@ -3,7 +3,7 @@ import pickle
 import numpy as np
 import pytest
 from cslug import ptr
-from hypothesis import given, strategies, settings, Verbosity, example
+from hypothesis import given, strategies, example
 
 from rockhopper import RaggedArray
 from rockhopper._ragged_array import _2_power, _big_endian
