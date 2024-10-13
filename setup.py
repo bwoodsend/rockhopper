@@ -25,6 +25,7 @@ setup(
         'Programming Language :: Python :: 3.10',
         'Programming Language :: Python :: 3.11',
         'Programming Language :: Python :: 3.12',
+        'Programming Language :: Python :: 3.13',
     ],
     description="Ragged (rows with different lengths) 2D NumPy arrays.",
     install_requires=copy_requirements(),
