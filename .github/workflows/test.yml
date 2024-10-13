@@ -26,8 +26,8 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - run: pip install wheel toml setuptools
-      - run: pip install -e .[test]
+      - run: pip install -U wheel toml setuptools
+      - run: pip install -e . -r tests/requirements.txt
 
       - name: Compile
         run: python setup.py build

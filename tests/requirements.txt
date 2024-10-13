@@ -1,0 +1,6 @@
+pytest
+pytest-ordered
+coverage
+pytest-cov
+coverage-conditional-plugin
+hypothesis

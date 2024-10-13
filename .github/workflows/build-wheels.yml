@@ -46,7 +46,7 @@ jobs:
 
       - name: Test Wheel
         run: |
-          pip install "$(echo dist/*.whl)[test]"
+          pip install dist/*.whl -r tests/requirements.txt
           rm -rf rockhopper
           pytest --no-cov
         shell: bash
