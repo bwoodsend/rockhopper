@@ -117,4 +117,5 @@ ENV/
 .DS_Store
 
 # Automatically generated files.
-rockhopper/src/endians.h
+rockhopper/endians.h
+rockhopper/*.json

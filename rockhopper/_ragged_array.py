@@ -10,13 +10,11 @@ from rockhopper import RequestMeError
 NUMPY_REPR = False
 
 BIG_ENDIAN = sys.byteorder == "big"
-endians_header = Header(*anchor("src/endians.h", "src/endians.c"),
+endians_header = Header(*anchor("endians.h", "endians.c"),
                         includes=["<stdbool.h>", '"_endian_typedefs.h"'])
 slug = CSlug(anchor(
-    "_slugs/ragged_array",
-    "src/ragged_array.c",
-    "src/ragged_array.h",
-    "src/endians.c",
+    "_ragged_array",
+    "ragged_array.c", "ragged_array.h", "endians.c"
 ), headers=endians_header)  # yapf: disable
 
 dtype_like = Union[np.dtype, Type[np.generic]]
@@ -798,7 +796,7 @@ def _big_endian(dtype):
 
 
 def sub_enumerate(ids, id_max):
-    """Wrapper of :c:`sub_enumerate()` from src/ragged_array.c
+    """Wrapper of :c:`sub_enumerate()` from ragged_array.c
 
     Args:
         ids (numpy.ndarray):
