@@ -29,12 +29,6 @@ setup(
     description="Ragged (rows with different lengths) 2D NumPy arrays.",
     install_requires=copy_requirements(),
     entry_points={"pyinstaller40": "hook-dirs=rockhopper:_PyInstaller_hook"},
-    extras_require={
-        "test": [
-            'pytest>=3', 'pytest-ordered', 'coverage', 'pytest-cov',
-            'coverage-conditional-plugin', 'hypothesis'
-        ]
-    },
     license="MIT license",
     long_description=readme,
     keywords='rockhopper',

@@ -64,7 +64,7 @@ Before you submit a pull request, check that it meets these guidelines:
 #. The pull request should work for all supported Python versions and
    PyInstaller. Run::
 
-        pip install -e .[test]
+        pip install -e . -r tests/requirements.txt
 
    to install test requirements. And::
 

@@ -8,7 +8,7 @@ Test requirements are lists under `extras_require` in `setup.py` and can be
 installed by running (in the root of this repository):
 
 ```shell
-pip install .[test]
+pip install . -r tests/requirements.txt
 ```
 
 You may use the `-e` parameter.

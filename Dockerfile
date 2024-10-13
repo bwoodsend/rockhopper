@@ -36,4 +36,4 @@ COPY rockhopper/_version.py /io/rockhopper
 WORKDIR /io
 
 # Install it. Skip build isolation for speed (and sanity).
-RUN pip install --prefer-binary --no-build-isolation -e .[test]
+RUN pip install --prefer-binary --no-build-isolation -e . -r tests/requirements.txt
