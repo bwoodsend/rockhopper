@@ -18,7 +18,7 @@ ARG BASE=manylinux1_x86_64
 FROM quay.io/pypa/${BASE}
 
 # Choosing a Python version is done just by prepending its bin dir to PATH.
-ENV PATH=/opt/python/cp39-cp39/bin:$PATH
+ENV PATH=/opt/python/cp310-cp310/bin:/opt/python/cp39-cp39/bin:$PATH
 
 # Install dependencies. Do this before COPY to encourage caching.
 RUN pip install --prefer-binary wheel auditwheel numpy
