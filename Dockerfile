@@ -25,7 +25,8 @@ RUN pip install --prefer-binary wheel auditwheel numpy
 RUN pip install cslug coverage toml
 
 # Copy across enough of this repo to build from.
-RUN mkdir -p /io/rockhopper
+RUN mkdir -p /io/rockhopper /io/tests
+COPY tests/requirements.txt /io/tests
 COPY setup.py /io
 COPY pyproject.toml /io
 COPY README.rst /io
